@@ -1,6 +1,6 @@
 <?php
 // Include the header file
-include 'header.php';
+include 'includes/header.php';
 ?>
 
 <!DOCTYPE html>
@@ -8,7 +8,7 @@ include 'header.php';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Simple PHP Page</title>
+    <title>Toy Store</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -45,5 +45,5 @@ include 'header.php';
 
 <?php
 // Include the footer file
-include 'footer.php';
+include 'includes/footer.php';
 ?>
