@@ -1,28 +1,116 @@
-<header class="bg-blue-800 text-white p-4 shadow-md">
-    <div class="container mx-auto flex justify-between items-center">
-        <!-- Logo/Site Title -->
-        <a href="index.php" class="text-3xl font-bold text-yellow-400 hover:text-yellow-300 transition duration-300">ToyLand</a>
-
-        <!-- Navigation Links -->
-        <nav>
-            <ul class="flex space-x-6">
-                <li><a href="index.php" class="hover:text-yellow-400 transition duration-300">Home</a></li>
-                <li><a href="public/products.php" class="hover:text-yellow-400 transition duration-300">Products</a></li>
-                <li><a href="#" class="hover:text-yellow-400 transition duration-300">About Us</a></li>
-                <li><a href="#" class="hover:text-yellow-400 transition duration-300">Contact</a></li>
-            </ul>
-        </nav>
-
-        <!-- User Actions (Login, Register, Cart) -->
-        <div class="flex items-center space-x-4">
-            <a href="public/register.php#" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-full shadow-md transition duration-300">Login</a>
-            <a href="public/register.php" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-full shadow-md transition duration-300">Register</a>
-            <a href="api/cart.php" class="bg-yellow-400 hover:bg-yellow-500 text-blue-900 font-bold py-2 px-4 rounded-full shadow-md transition duration-300 flex items-center space-x-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.5 14 6.354 14H15a1 1 0 000-2H6.354c-.254 0-.51.053-.746.159l.809-3.238a1 1 0 00-1.022-1.242l-1.474.368L7.136 7.136A1 1 0 008 7h5a1 1 0 00.95-.623l3-7H3zM6 16a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
-                </svg>
-                <span>Cart</span>
-            </a>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo isset($page_title) ? $page_title . ' - ' : ''; ?>ToyLand Store</title>
+    <meta name="description" content="<?php echo isset($page_description) ? $page_description : 'Your one-stop shop for amazing toys and games for all ages'; ?>">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <!-- Top Bar -->
+    <div class="top-bar">
+        <div class="container">
+            <div class="top-bar-left">
+                <span><i class="fas fa-phone"></i> Call us: (555) 123-4567</span>
+                <span><i class="fas fa-envelope"></i> info@toylandstore.com</span>
+            </div>
+            <div class="top-bar-right">
+                <a href="shipping.php">Free Shipping on Orders Over $50</a>
+                <div class="social-links">
+                    <a href="#"><i class="fab fa-facebook"></i></a>
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-instagram"></i></a>
+                </div>
+            </div>
         </div>
     </div>
-</header>
+
+    <!-- Header -->
+    <header class="main-header">
+        <div class="container">
+            <div class="header-top">
+                <div class="logo">
+                    <a href="index.php">
+                        <h1>ToyLand Store</h1>
+                        <span>Where Imagination Comes to Life</span>
+                    </a>
+                </div>
+                
+                <div class="search-bar">
+                    <form action="search.php" method="GET">
+                        <input type="text" name="q" placeholder="Search for toys, games, and more..." value="<?php echo isset($_GET['q']) ? htmlspecialchars($_GET['q']) : ''; ?>">
+                        <button type="submit"><i class="fas fa-search"></i></button>
+                    </form>
+                </div>
+                
+                <div class="header-actions">
+                    <div class="user-account">
+                        <?php if (isset($_SESSION['user_id'])): ?>
+                            <a href="account.php"><i class="fas fa-user"></i> My Account</a>
+                            <a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                        <?php else: ?>
+                            <a href="login.php"><i class="fas fa-sign-in-alt"></i> Login</a>
+                            <a href="register.php"><i class="fas fa-user-plus"></i> Register</a>
+                        <?php endif; ?>
+                    </div>
+                    
+                    <div class="cart">
+                        <a href="cart.php" class="cart-icon">
+                            <i class="fas fa-shopping-cart"></i>
+                            <span class="cart-count"><?php echo isset($_SESSION['cart_count']) ? $_SESSION['cart_count'] : 0; ?></span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Navigation -->
+            <nav class="main-nav">
+                <ul class="nav-menu">
+                    <li><a href="index.php">Home</a></li>
+                    <li class="dropdown">
+                        <a href="products.php">Categories <i class="fas fa-chevron-down"></i></a>
+                        <ul class="dropdown-menu">
+                            <li><a href="products.php?category=action-figures">Action Figures</a></li>
+                            <li><a href="products.php?category=board-games">Board Games</a></li>
+                            <li><a href="products.php?category=educational">Educational Toys</a></li>
+                            <li><a href="products.php?category=outdoor">Outdoor Toys</a></li>
+                            <li><a href="products.php?category=arts-crafts">Arts & Crafts</a></li>
+                            <li><a href="products.php?category=babies-toddlers">Babies & Toddlers</a></li>
+                        </ul>
+                    </li>
+                    <li><a href="new-arrivals.php">New Arrivals</a></li>
+                    <li><a href="sale.php">Sale</a></li>
+                    <li><a href="brands.php">Brands</a></li>
+                    <li><a href="about.php">About Us</a></li>
+                    <li><a href="contact.php">Contact</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Breadcrumb -->
+    <?php if (isset($show_breadcrumb) && $show_breadcrumb): ?>
+    <div class="breadcrumb">
+        <div class="container">
+            <ul>
+                <li><a href="index.php">Home</a></li>
+                <?php if (isset($breadcrumb_items)): ?>
+                    <?php foreach ($breadcrumb_items as $item): ?>
+                        <li><a href="<?php echo $item['url']; ?>"><?php echo $item['title']; ?></a></li>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+                <li class="current"><?php echo $page_title; ?></li>
+            </ul>
+        </div>
+    </div>
+    <?php endif; ?>
