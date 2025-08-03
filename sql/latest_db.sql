@@ -28,11 +28,11 @@ SET time_zone = "+00:00";
 --
 
 CREATE TABLE `categories` (
-  `category_id` int(11) NOT NULL,
+  `category_id` varchar(11) NOT NULL,
   `name` varchar(100) NOT NULL,
   `description` text DEFAULT NULL,
   `image` varchar(255) DEFAULT NULL,
-  `parent_id` int(11) DEFAULT NULL,
+  `parent_id` varchar(11) DEFAULT NULL,
   `status` enum('active','inactive') DEFAULT 'active',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
@@ -45,7 +45,7 @@ CREATE TABLE `categories` (
 --
 
 CREATE TABLE `orders` (
-  `order_id` int(11) NOT NULL,
+  `order_id` varchar(11) NOT NULL,
   `user_id` varchar(11) NOT NULL,
   `order_number` varchar(20) NOT NULL,
   `total_amount` decimal(10,2) NOT NULL,
@@ -66,7 +66,7 @@ CREATE TABLE `orders` (
 --
 
 CREATE TABLE `products` (
-  `product_id` int(11) NOT NULL,
+  `product_id` varchar(11) NOT NULL,
   `name` varchar(200) NOT NULL,
   `description` text DEFAULT NULL,
   `price` decimal(10,2) NOT NULL,
@@ -88,7 +88,7 @@ CREATE TABLE `products` (
 --
 
 CREATE TABLE `reviews` (
-  `review_id` int(11) NOT NULL,
+  `review_id` varchar(11) NOT NULL,
   `user_id` varchar(11) NOT NULL,
   `product_id` int(11) NOT NULL,
   `rating` int(11) NOT NULL CHECK (`rating` >= 1 and `rating` <= 5),
@@ -160,9 +160,9 @@ INSERT INTO `user_profiles` (`profile_id`, `user_id`, `first_name`, `last_name`,
 --
 
 CREATE TABLE `wishlist` (
-  `wishlist_id` int(11) NOT NULL,
+  `wishlist_id` varchar(11) NOT NULL,
   `user_id` varchar(11) NOT NULL,
-  `product_id` int(11) NOT NULL,
+  `product_id` varchar(20) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
@@ -240,46 +240,6 @@ ALTER TABLE `wishlist`
 
 --
 -- AUTO_INCREMENT for dumped tables
---
-
---
--- AUTO_INCREMENT for table `categories`
---
-ALTER TABLE `categories`
-  MODIFY `category_id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `orders`
---
-ALTER TABLE `orders`
-  MODIFY `order_id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `products`
---
-ALTER TABLE `products`
-  MODIFY `product_id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `reviews`
---
-ALTER TABLE `reviews`
-  MODIFY `review_id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `user_profiles`
---
-ALTER TABLE `user_profiles`
-  MODIFY `profile_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
-
---
--- AUTO_INCREMENT for table `wishlist`
---
-ALTER TABLE `wishlist`
-  MODIFY `wishlist_id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- Constraints for dumped tables
 --
 
 --
