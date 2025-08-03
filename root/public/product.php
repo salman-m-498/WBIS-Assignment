@@ -2,16 +2,35 @@
 session_start();
 
 // Get product ID
-$product_id = isset($_GET['id']) ? (int)$_GET['id'] : 1;
+$product_id = isset($_GET['id']) ? $_GET['id'] : '';
+
+// DB connection
+$pdo = new PDO("mysql:host=localhost;dbname=web_db;charset=utf8mb4", "root", "");
+$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+// Get product
+$stmt = $pdo->prepare("SELECT * FROM products WHERE product_id = ?");
+$stmt->execute([$product_id]);
+$product = $stmt->fetch();
+
+if (!$product) {
+    echo "<h2>Product not found</h2>";
+    exit;
+}
+
+// Get images
+$image_stmt = $pdo->prepare("SELECT image_path FROM product_images WHERE product_id = ?");
+$image_stmt->execute([$product_id]);
+$images = $image_stmt->fetchAll(PDO::FETCH_COLUMN);
+$main_image = $images[0];
+$thumbnail_images = array_slice($images, 1);
+
 
 // Page variables
-$page_title = "Super Robot Action Figure";
-$page_description = "High-quality action figure with multiple articulation points and accessories";
+$page_title = $product['name'];
+$page_description = $product['description'];
 $show_breadcrumb = true;
-$breadcrumb_items = [
-    ['url' => 'products.php', 'title' => 'Products'],
-    ['url' => 'products.php?category=action-figures', 'title' => 'Action Figures']
-];
+$breadcrumb_items = [['url' => 'products.php', 'title' => 'Products']];
 
 // Include header
 include 'includes/header.php';
@@ -24,63 +43,32 @@ include 'includes/header.php';
             <!-- Product Images -->
             <div class="product-images">
                 <div class="main-image">
-                    <img src="assets/images/product-1-large.jpg" alt="Super Robot Action Figure" id="main-product-image">
+                    <img src="<?= htmlspecialchars($main_image) ?>" alt="<?= htmlspecialchars($product['name']) ?>" id="main-product-image">
                 </div>
                 <div class="thumbnail-images">
-                    <div class="thumbnail active" data-image="assets/images/product-1-large.jpg">
-                        <img src="assets/images/product-1-thumb.jpg" alt="Super Robot Action Figure">
-                    </div>
-                    <div class="thumbnail" data-image="assets/images/product-1-2.jpg">
-                        <img src="assets/images/product-1-2-thumb.jpg" alt="Super Robot Action Figure - Side View">
-                    </div>
-                    <div class="thumbnail" data-image="assets/images/product-1-3.jpg">
-                        <img src="assets/images/product-1-3-thumb.jpg" alt="Super Robot Action Figure - Back View">
-                    </div>
-                    <div class="thumbnail" data-image="assets/images/product-1-4.jpg">
-                        <img src="assets/images/product-1-4-thumb.jpg" alt="Super Robot Action Figure - Accessories">
-                    </div>
+                    <?php foreach ($thumbnail_images as $img): ?>
+                        <div class="thumbnail" data-image="<?= htmlspecialchars($img) ?>">
+                           <img src="<?= htmlspecialchars($img) ?>" alt="Thumbnail">
+                        </div>
+                    <?php endforeach; ?>
                 </div>
             </div>
+
             
             <!-- Product Info -->
             <div class="product-info">
                 <div class="product-header">
-                    <h1>Super Robot Action Figure</h1>
-                    <div class="product-rating">
-                        <div class="stars">
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                        </div>
-                        <span class="rating-text">5.0 out of 5</span>
-                        <span class="review-count">(24 reviews)</span>
-                        <a href="#reviews" class="write-review">Write a Review</a>
-                    </div>
-                    <div class="product-badges">
-                        <span class="badge sale">Sale</span>
-                        <span class="badge new">New</span>
-                    </div>
-                </div>
-                
+                    <h1><?= htmlspecialchars($product['name']) ?></h1>
                 <div class="product-price">
-                    <span class="current-price">$24.99</span>
-                    <span class="original-price">$34.99</span>
-                    <span class="discount">Save $10.00 (29% off)</span>
+                    <span class="current-price">RM <?= number_format($product['sale_price'], 2) ?></span>
+                    <?php if ($product['price'] > $product['sale_price']): ?>
+                        <span class="original-price">RM <?= number_format($product['price'], 2) ?></span>
+                        <span class="discount">Save RM <?= number_format($product['price'] - $product['sale_price'], 2) ?></span>
+                    <?php endif; ?>
                 </div>
                 
                 <div class="product-description">
-                    <p>This high-quality Super Robot Action Figure features multiple articulation points, allowing for dynamic poses and endless play possibilities. Perfect for collectors and kids alike!</p>
-                    
-                    <ul class="product-features">
-                        <li>Highly articulated with 20+ points of movement</li>
-                        <li>Includes 3 interchangeable accessories</li>
-                        <li>Made from durable, child-safe materials</li>
-                        <li>Recommended for ages 6+</li>
-                        <li>Dimensions: 8" tall</li>
-                    </ul>
-                </div>
+                     <p><?= nl2br(htmlspecialchars($product['description'])) ?></p>
                 
                 <div class="product-options">
                     <div class="option-group">
@@ -92,45 +80,24 @@ include 'includes/header.php';
                         </div>
                     </div>
                     
-                    <div class="option-group">
-                        <label for="quantity">Quantity:</label>
-                        <div class="quantity-selector">
-                            <button class="quantity-btn minus">-</button>
-                            <input type="number" id="quantity" name="quantity" value="1" min="1" max="10">
-                            <button class="quantity-btn plus">+</button>
-                        </div>
-                    </div>
                 </div>
                 
                 <div class="product-actions">
-                    <button class="btn btn-primary add-to-cart-btn" data-product-id="<?php echo $product_id; ?>">
-                        <i class="fas fa-shopping-cart"></i> Add to Cart
-                    </button>
-                    <button class="btn btn-outline add-to-wishlist-btn" data-product-id="<?php echo $product_id; ?>">
-                        <i class="far fa-heart"></i> Add to Wishlist
-                    </button>
-                    <button class="btn btn-outline quick-buy-btn">
-                        <i class="fas fa-bolt"></i> Buy Now
-                    </button>
+                    <form method="post" action="add_to_cart.php">
+                        <input type="hidden" name="product_id" value="<?= $product_id ?>">
+                        <label for="quantity">Quantity:</label>
+                        <input type="number" name="quantity" id="quantity" value="1" min="1" max="<?= $product['stock_quantity'] ?>">
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-shopping-cart"></i> Add to Cart</button>
+                    </form>
                 </div>
+            </div>
+        </div>
+    </div>
                 
                 <div class="product-meta">
-                    <div class="meta-item">
-                        <span class="meta-label">SKU:</span>
-                        <span class="meta-value">ROB-001</span>
-                    </div>
-                    <div class="meta-item">
-                        <span class="meta-label">Category:</span>
-                        <span class="meta-value"><a href="products.php?category=action-figures">Action Figures</a></span>
-                    </div>
-                    <div class="meta-item">
-                        <span class="meta-label">Brand:</span>
-                        <span class="meta-value"><a href="brands.php?brand=super-toys">Super Toys</a></span>
-                    </div>
-                    <div class="meta-item">
-                        <span class="meta-label">Availability:</span>
-                        <span class="meta-value in-stock">In Stock</span>
-                    </div>
+                    <div><strong>SKU:</strong> <?= htmlspecialchars($product['sku']) ?></div>
+                    <div><strong>Stock:</strong> <?= htmlspecialchars($product['stock_quantity']) ?> available</div>
+                    <div><strong>Category ID:</strong> <?= htmlspecialchars($product['category_id']) ?></div>
                 </div>
                 
                 <div class="product-shipping">
@@ -168,64 +135,28 @@ include 'includes/header.php';
                 <div class="tab-pane active" id="description">
                     <div class="product-description-content">
                         <h3>Product Description</h3>
-                        <p>The Super Robot Action Figure is the ultimate collectible for robot enthusiasts and action figure collectors. This meticulously crafted figure features exceptional detail and articulation that brings your robot fantasies to life.</p>
+                        <p><?= nl2br(htmlspecialchars($product['description'])) ?></p>
                         
                         <h4>Key Features:</h4>
-                        <ul>
-                            <li><strong>Premium Articulation:</strong> 20+ points of articulation for dynamic posing</li>
-                            <li><strong>Interchangeable Accessories:</strong> Includes 3 different weapon attachments</li>
-                            <li><strong>Durable Construction:</strong> Made from high-quality, child-safe materials</li>
-                            <li><strong>Detailed Design:</strong> Intricate sculpting and paint applications</li>
-                            <li><strong>Display Stand:</strong> Included for perfect display positioning</li>
-                        </ul>
-                        
-                        <h4>Perfect For:</h4>
-                        <ul>
-                            <li>Action figure collectors</li>
-                            <li>Robot and sci-fi enthusiasts</li>
-                            <li>Creative play and storytelling</li>
-                            <li>Display and photography</li>
-                        </ul>
+                        <?= nl2br(htmlspecialchars($product['product_features'])) ?>
                     </div>
                 </div>
                 
                 <!-- Specifications Tab -->
                 <div class="tab-pane" id="specifications">
                     <div class="product-specifications">
-                        <h3>Product Specifications</h3>
-                        <table class="specs-table">
-                            <tr>
-                                <td><strong>Dimensions:</strong></td>
-                                <td>8" tall x 3" wide x 2" deep</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Weight:</strong></td>
-                                <td>0.5 lbs</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Material:</strong></td>
-                                <td>ABS Plastic, PVC</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Articulation Points:</strong></td>
-                                <td>20+ points</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Age Range:</strong></td>
-                                <td>6+ years</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Includes:</strong></td>
-                                <td>Action figure, 3 accessories, display stand</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Battery Required:</strong></td>
-                                <td>No</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Safety Certifications:</strong></td>
-                                <td>ASTM F963, EN71, CPSIA</td>
-                            </tr>
+                         <table class="specs-table">
+                         <?php
+                         $lines = explode("\n", $product['product_specifications']);
+                         foreach ($lines as $line) {
+                              if (strpos($line, ':') !== false) {
+                                 list($label, $value) = explode(':', $line, 2);
+                                 echo '<tr>';
+                                 echo '<td><strong>' . htmlspecialchars(trim($label)) . ':</strong></td>';
+                                 echo '<td>' . htmlspecialchars(trim($value)) . '</td>';
+                                 echo '</tr>';}       
+                                }
+                        ?>
                         </table>
                     </div>
                 </div>
@@ -507,6 +438,15 @@ include 'includes/header.php';
         </div>
     </div>
 </section>
+
+<script>
+document.querySelectorAll('.thumbnail').forEach(thumb => {
+    thumb.addEventListener('click', () => {
+        const newSrc = thumb.getAttribute('data-image');
+        document.getElementById('main-product-image').src = newSrc;
+    });
+});
+</script>
 
 <?php
 // Include footer

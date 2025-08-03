@@ -154,15 +154,16 @@ include 'includes/header.php';
         </div>
         
         <div class="products-grid">
-            <!-- Featured Product 1 -->
             <?php foreach ($featured_products as $product): ?>
                 <?php
                     $image_path = str_replace("root/", "", $product['image']);
-                    $product_url = "product.php?id=" . urlencode($product['product_id']);
+                    $product_url = "public/product.php?id=" . urlencode($product['product_id']);
                 ?>
                 <div class="product-card">
                     <div class="product-image">
-                        <img src="<?= htmlspecialchars($image_path) ?>" alt="<?= htmlspecialchars($product['name']) ?>">
+                        <a href="<?= $product_url ?>">
+                            <img src="<?= htmlspecialchars($image_path) ?>" alt="<?= htmlspecialchars($product['name']) ?>">
+                        </a>
                         <div class="product-overlay">
                             <button class="quick-view" data-product-id="<?= $product['product_id'] ?>">Quick View</button>
                             <button class="add-to-wishlist" data-product-id="<?= $product['product_id'] ?>"><i class="far fa-heart"></i></button>

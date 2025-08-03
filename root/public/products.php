@@ -53,30 +53,34 @@ include 'includes/header.php';
                     <?php foreach ($products as $product): ?>
                         <?php
                             $image_path = str_replace("root/", "", $product['image']);
-                            $product_url = "product.php?id=" . urlencode($product['product_id']);
+                            $product_url = "public/product.php?id=" . urlencode($product['product_id']);
                         ?>
                         <div class="product-card">
                             <div class="product-image">
-                                <img src="<?= htmlspecialchars($image_path) ?>" alt="<?= htmlspecialchars($product['name']) ?>">
-                                <div class="product-overlay">
-                                    <button class="quick-view" data-product-id="<?= $product['product_id'] ?>">Quick View</button>
-                                    <button class="add-to-wishlist" data-product-id="<?= $product['product_id'] ?>"><i class="far fa-heart"></i></button>
+                                <a href="<?= $product_url ?>">
+                                    <img src="<?= htmlspecialchars($image_path) ?>" alt="<?= htmlspecialchars($product['name']) ?>">
+                                </a>
+
+                               <div class="product-overlay">
+                                 <button class="quick-view" data-product-id="<?= $product['product_id'] ?>">Quick View</button>
+                                 <button class="add-to-wishlist" data-product-id="<?= $product['product_id'] ?>"><i class="far fa-heart"></i></button>
                                 </div>
-                                <?php if ($product['sale_price'] < $product['price']): ?>
-                                    <div class="product-badge sale">Sale</div>
-                                <?php endif; ?>
+                               <?php if ($product['sale_price'] < $product['price']): ?>
+                                  <div class="product-badge sale">Sale</div>
+                              <?php endif; ?>
+                           </div>
+
+                        <div class="product-content">
+                             <h3><a href="<?= $product_url ?>"><?= htmlspecialchars($product['name']) ?></a></h3>
+                             <div class="product-price">
+                                  <span class="current-price">RM<?= number_format($product['sale_price'], 2) ?></span>
+                                  <?php if ($product['sale_price'] < $product['price']): ?>
+                                    <span class="original-price">RM<?= number_format($product['price'], 2) ?></span>
+                                  <?php endif; ?>
                             </div>
-                            <div class="product-content">
-                                <h3><a href="<?= $product_url ?>"><?= htmlspecialchars($product['name']) ?></a></h3>
-                                <div class="product-price">
-                                    <span class="current-price">RM<?= number_format($product['sale_price'], 2) ?></span>
-                                    <?php if ($product['sale_price'] < $product['price']): ?>
-                                        <span class="original-price">RM<?= number_format($product['price'], 2) ?></span>
-                                    <?php endif; ?>
-                                </div>
-                                <button class="add-to-cart" data-product-id="<?= $product['product_id'] ?>">Add to Cart</button>
-                            </div>
+                            <button class="add-to-cart" data-product-id="<?= $product['product_id'] ?>">Add to Cart</button>
                         </div>
+                </div>
                     <?php endforeach; ?>
                 </div>
             </main>
