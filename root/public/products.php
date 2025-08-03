@@ -1,5 +1,14 @@
 <?php
 session_start();
+require_once '../includes/db.php';
+
+// DB connection
+$pdo = new PDO("mysql:host=localhost;dbname=web_db;charset=utf8mb4", "root", "");
+$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+// Get products
+$stmt = $pdo->query("SELECT * FROM products WHERE status = 'active'");
+$products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Page variables
 $page_title = "Products";
@@ -35,6 +44,46 @@ include 'includes/header.php';
 <section class="products-section">
     <div class="container">
         <div class="products-layout">
+             <main class="products-content">
+                <div class="products-header">
+                    <h2>All Products</h2>
+                </div>
+
+                <div class="products-grid">
+                    <?php foreach ($products as $product): ?>
+                        <?php
+                            $image_path = str_replace("root/", "", $product['image']);
+                            $product_url = "product.php?id=" . urlencode($product['product_id']);
+                        ?>
+                        <div class="product-card">
+                            <div class="product-image">
+                                <img src="<?= htmlspecialchars($image_path) ?>" alt="<?= htmlspecialchars($product['name']) ?>">
+                                <div class="product-overlay">
+                                    <button class="quick-view" data-product-id="<?= $product['product_id'] ?>">Quick View</button>
+                                    <button class="add-to-wishlist" data-product-id="<?= $product['product_id'] ?>"><i class="far fa-heart"></i></button>
+                                </div>
+                                <?php if ($product['sale_price'] < $product['price']): ?>
+                                    <div class="product-badge sale">Sale</div>
+                                <?php endif; ?>
+                            </div>
+                            <div class="product-content">
+                                <h3><a href="<?= $product_url ?>"><?= htmlspecialchars($product['name']) ?></a></h3>
+                                <div class="product-price">
+                                    <span class="current-price">RM<?= number_format($product['sale_price'], 2) ?></span>
+                                    <?php if ($product['sale_price'] < $product['price']): ?>
+                                        <span class="original-price">RM<?= number_format($product['price'], 2) ?></span>
+                                    <?php endif; ?>
+                                </div>
+                                <button class="add-to-cart" data-product-id="<?= $product['product_id'] ?>">Add to Cart</button>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </main>
+        </div>
+    </div>
+
+
             <!-- Sidebar Filters -->
             <aside class="products-sidebar">
                 <div class="filter-section">
@@ -172,253 +221,6 @@ include 'includes/header.php';
                 </div>
             </aside>
             
-            <!-- Products Content -->
-            <main class="products-content">
-                <!-- Products Header -->
-                <div class="products-header">
-                    <div class="products-count">
-                        <span>Showing 1-12 of 48 products</span>
-                    </div>
-                    
-                    <div class="products-controls">
-                        <div class="sort-controls">
-                            <label for="sort">Sort by:</label>
-                            <select id="sort" name="sort">
-                                <option value="name" <?php echo ($sort == 'name') ? 'selected' : ''; ?>>Name A-Z</option>
-                                <option value="name_desc" <?php echo ($sort == 'name_desc') ? 'selected' : ''; ?>>Name Z-A</option>
-                                <option value="price" <?php echo ($sort == 'price') ? 'selected' : ''; ?>>Price Low to High</option>
-                                <option value="price_desc" <?php echo ($sort == 'price_desc') ? 'selected' : ''; ?>>Price High to Low</option>
-                                <option value="rating" <?php echo ($sort == 'rating') ? 'selected' : ''; ?>>Highest Rated</option>
-                                <option value="newest" <?php echo ($sort == 'newest') ? 'selected' : ''; ?>>Newest First</option>
-                            </select>
-                        </div>
-                        
-                        <div class="view-controls">
-                            <button class="view-btn grid-view active" data-view="grid">
-                                <i class="fas fa-th"></i>
-                            </button>
-                            <button class="view-btn list-view" data-view="list">
-                                <i class="fas fa-list"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Products Grid -->
-                <div class="products-grid" id="products-container">
-                    <!-- Product 1 -->
-                    <div class="product-card">
-                        <div class="product-image">
-                            <img src="assets/images/product-1.jpg" alt="Super Robot Action Figure">
-                            <div class="product-overlay">
-                                <button class="quick-view" data-product-id="1">Quick View</button>
-                                <button class="add-to-wishlist" data-product-id="1"><i class="far fa-heart"></i></button>
-                            </div>
-                            <div class="product-badge sale">Sale</div>
-                        </div>
-                        <div class="product-content">
-                            <h3><a href="product.php?id=1">Super Robot Action Figure</a></h3>
-                            <div class="product-rating">
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <span>(24 reviews)</span>
-                            </div>
-                            <div class="product-price">
-                                <span class="current-price">$24.99</span>
-                                <span class="original-price">$34.99</span>
-                            </div>
-                            <button class="add-to-cart" data-product-id="1">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <!-- Product 2 -->
-                    <div class="product-card">
-                        <div class="product-image">
-                            <img src="assets/images/product-2.jpg" alt="Educational Building Blocks">
-                            <div class="product-overlay">
-                                <button class="quick-view" data-product-id="2">Quick View</button>
-                                <button class="add-to-wishlist" data-product-id="2"><i class="far fa-heart"></i></button>
-                            </div>
-                            <div class="product-badge new">New</div>
-                        </div>
-                        <div class="product-content">
-                            <h3><a href="product.php?id=2">Educational Building Blocks</a></h3>
-                            <div class="product-rating">
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="far fa-star"></i>
-                                <span>(18 reviews)</span>
-                            </div>
-                            <div class="product-price">
-                                <span class="current-price">$39.99</span>
-                            </div>
-                            <button class="add-to-cart" data-product-id="2">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <!-- Product 3 -->
-                    <div class="product-card">
-                        <div class="product-image">
-                            <img src="assets/images/product-3.jpg" alt="Family Board Game">
-                            <div class="product-overlay">
-                                <button class="quick-view" data-product-id="3">Quick View</button>
-                                <button class="add-to-wishlist" data-product-id="3"><i class="far fa-heart"></i></button>
-                            </div>
-                        </div>
-                        <div class="product-content">
-                            <h3><a href="product.php?id=3">Family Board Game</a></h3>
-                            <div class="product-rating">
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <span>(31 reviews)</span>
-                            </div>
-                            <div class="product-price">
-                                <span class="current-price">$29.99</span>
-                            </div>
-                            <button class="add-to-cart" data-product-id="3">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <!-- Product 4 -->
-                    <div class="product-card">
-                        <div class="product-image">
-                            <img src="assets/images/product-4.jpg" alt="Art & Craft Kit">
-                            <div class="product-overlay">
-                                <button class="quick-view" data-product-id="4">Quick View</button>
-                                <button class="add-to-wishlist" data-product-id="4"><i class="far fa-heart"></i></button>
-                            </div>
-                        </div>
-                        <div class="product-content">
-                            <h3><a href="product.php?id=4">Art & Craft Kit</a></h3>
-                            <div class="product-rating">
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="far fa-star"></i>
-                                <span>(15 reviews)</span>
-                            </div>
-                            <div class="product-price">
-                                <span class="current-price">$19.99</span>
-                            </div>
-                            <button class="add-to-cart" data-product-id="4">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <!-- Product 5 -->
-                    <div class="product-card">
-                        <div class="product-image">
-                            <img src="assets/images/product-5.jpg" alt="Outdoor Play Set">
-                            <div class="product-overlay">
-                                <button class="quick-view" data-product-id="5">Quick View</button>
-                                <button class="add-to-wishlist" data-product-id="5"><i class="far fa-heart"></i></button>
-                            </div>
-                        </div>
-                        <div class="product-content">
-                            <h3><a href="product.php?id=5">Outdoor Play Set</a></h3>
-                            <div class="product-rating">
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <span>(22 reviews)</span>
-                            </div>
-                            <div class="product-price">
-                                <span class="current-price">$89.99</span>
-                            </div>
-                            <button class="add-to-cart" data-product-id="5">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <!-- Product 6 -->
-                    <div class="product-card">
-                        <div class="product-image">
-                            <img src="assets/images/product-6.jpg" alt="Baby Rattle Set">
-                            <div class="product-overlay">
-                                <button class="quick-view" data-product-id="6">Quick View</button>
-                                <button class="add-to-wishlist" data-product-id="6"><i class="far fa-heart"></i></button>
-                            </div>
-                        </div>
-                        <div class="product-content">
-                            <h3><a href="product.php?id=6">Baby Rattle Set</a></h3>
-                            <div class="product-rating">
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="far fa-star"></i>
-                                <span>(12 reviews)</span>
-                            </div>
-                            <div class="product-price">
-                                <span class="current-price">$14.99</span>
-                            </div>
-                            <button class="add-to-cart" data-product-id="6">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <!-- Product 7 -->
-                    <div class="product-card">
-                        <div class="product-image">
-                            <img src="assets/images/product-7.jpg" alt="Science Experiment Kit">
-                            <div class="product-overlay">
-                                <button class="quick-view" data-product-id="7">Quick View</button>
-                                <button class="add-to-wishlist" data-product-id="7"><i class="far fa-heart"></i></button>
-                            </div>
-                            <div class="product-badge sale">Sale</div>
-                        </div>
-                        <div class="product-content">
-                            <h3><a href="product.php?id=7">Science Experiment Kit</a></h3>
-                            <div class="product-rating">
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <span>(28 reviews)</span>
-                            </div>
-                            <div class="product-price">
-                                <span class="current-price">$44.99</span>
-                                <span class="original-price">$59.99</span>
-                            </div>
-                            <button class="add-to-cart" data-product-id="7">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <!-- Product 8 -->
-                    <div class="product-card">
-                        <div class="product-image">
-                            <img src="assets/images/product-8.jpg" alt="Puzzle Set">
-                            <div class="product-overlay">
-                                <button class="quick-view" data-product-id="8">Quick View</button>
-                                <button class="add-to-wishlist" data-product-id="8"><i class="far fa-heart"></i></button>
-                            </div>
-                        </div>
-                        <div class="product-content">
-                            <h3><a href="product.php?id=8">Puzzle Set</a></h3>
-                            <div class="product-rating">
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="far fa-star"></i>
-                                <span>(19 reviews)</span>
-                            </div>
-                            <div class="product-price">
-                                <span class="current-price">$16.99</span>
-                            </div>
-                            <button class="add-to-cart" data-product-id="8">Add to Cart</button>
-                        </div>
-                    </div>
-                </div>
                 
                 <!-- Pagination -->
                 <div class="pagination">

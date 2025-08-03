@@ -1,6 +1,14 @@
 <?php
 session_start();
 
+// DB connection
+$pdo = new PDO("mysql:host=localhost;dbname=web_db;charset=utf8mb4", "root", "");
+$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+// Get featured products
+$stmt = $pdo->query("SELECT * FROM products WHERE featured = 1 ");
+$featured_products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
 // Page variables
 $page_title = "Home";
 $page_description = "Discover amazing toys and games for all ages at ToyLand Store. Free shipping on orders over $50!";
@@ -147,113 +155,36 @@ include 'includes/header.php';
         
         <div class="products-grid">
             <!-- Featured Product 1 -->
-            <div class="product-card">
-                <div class="product-image">
-                    <img src="assets/images/product-1.jpg" alt="Super Robot Action Figure">
-                    <div class="product-overlay">
-                        <button class="quick-view" data-product-id="1">Quick View</button>
-                        <button class="add-to-wishlist" data-product-id="1"><i class="far fa-heart"></i></button>
+            <?php foreach ($featured_products as $product): ?>
+                <?php
+                    $image_path = str_replace("root/", "", $product['image']);
+                    $product_url = "product.php?id=" . urlencode($product['product_id']);
+                ?>
+                <div class="product-card">
+                    <div class="product-image">
+                        <img src="<?= htmlspecialchars($image_path) ?>" alt="<?= htmlspecialchars($product['name']) ?>">
+                        <div class="product-overlay">
+                            <button class="quick-view" data-product-id="<?= $product['product_id'] ?>">Quick View</button>
+                            <button class="add-to-wishlist" data-product-id="<?= $product['product_id'] ?>"><i class="far fa-heart"></i></button>
+                        </div>
+                        <?php if ($product['sale_price'] < $product['price']): ?>
+                            <div class="product-badge sale">Sale</div>
+                        <?php endif; ?>
                     </div>
-                    <div class="product-badge sale">Sale</div>
-                </div>
-                <div class="product-content">
-                    <h3><a href="product.php?id=1">Super Robot Action Figure</a></h3>
-                    <div class="product-rating">
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <span>(24 reviews)</span>
-                    </div>
-                    <div class="product-price">
-                        <span class="current-price">$24.99</span>
-                        <span class="original-price">$34.99</span>
-                    </div>
-                    <button class="add-to-cart" data-product-id="1">Add to Cart</button>
-                </div>
-            </div>
-            
-            <!-- Featured Product 2 -->
-            <div class="product-card">
-                <div class="product-image">
-                    <img src="assets/images/product-2.jpg" alt="Educational Building Blocks">
-                    <div class="product-overlay">
-                        <button class="quick-view" data-product-id="2">Quick View</button>
-                        <button class="add-to-wishlist" data-product-id="2"><i class="far fa-heart"></i></button>
-                    </div>
-                    <div class="product-badge new">New</div>
-                </div>
-                <div class="product-content">
-                    <h3><a href="product.php?id=2">Educational Building Blocks</a></h3>
-                    <div class="product-rating">
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="far fa-star"></i>
-                        <span>(18 reviews)</span>
-                    </div>
-                    <div class="product-price">
-                        <span class="current-price">$39.99</span>
-                    </div>
-                    <button class="add-to-cart" data-product-id="2">Add to Cart</button>
-                </div>
-            </div>
-            
-            <!-- Featured Product 3 -->
-            <div class="product-card">
-                <div class="product-image">
-                    <img src="assets/images/product-3.jpg" alt="Family Board Game">
-                    <div class="product-overlay">
-                        <button class="quick-view" data-product-id="3">Quick View</button>
-                        <button class="add-to-wishlist" data-product-id="3"><i class="far fa-heart"></i></button>
+                    <div class="product-content">
+                        <h3><a href="<?= $product_url ?>"><?= htmlspecialchars($product['name']) ?></a></h3>
+                        <div class="product-price">
+                            <span class="current-price">RM<?= number_format($product['sale_price'], 2) ?></span>
+                            <?php if ($product['sale_price'] < $product['price']): ?>
+                                <span class="original-price">RM<?= number_format($product['price'], 2) ?></span>
+                            <?php endif; ?>
+                        </div>
+                        <button class="add-to-cart" data-product-id="<?= $product['product_id'] ?>">Add to Cart</button>
                     </div>
                 </div>
-                <div class="product-content">
-                    <h3><a href="product.php?id=3">Family Board Game</a></h3>
-                    <div class="product-rating">
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <span>(31 reviews)</span>
-                    </div>
-                    <div class="product-price">
-                        <span class="current-price">$29.99</span>
-                    </div>
-                    <button class="add-to-cart" data-product-id="3">Add to Cart</button>
-                </div>
-            </div>
-            
-            <!-- Featured Product 4 -->
-            <div class="product-card">
-                <div class="product-image">
-                    <img src="assets/images/product-4.jpg" alt="Art & Craft Kit">
-                    <div class="product-overlay">
-                        <button class="quick-view" data-product-id="4">Quick View</button>
-                        <button class="add-to-wishlist" data-product-id="4"><i class="far fa-heart"></i></button>
-                    </div>
-                </div>
-                <div class="product-content">
-                    <h3><a href="product.php?id=4">Art & Craft Kit</a></h3>
-                    <div class="product-rating">
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="far fa-star"></i>
-                        <span>(15 reviews)</span>
-                    </div>
-                    <div class="product-price">
-                        <span class="current-price">$19.99</span>
-                    </div>
-                    <button class="add-to-cart" data-product-id="4">Add to Cart</button>
-                </div>
-            </div>
+            <?php endforeach; ?>
         </div>
-        
+
         <div class="view-all-products">
             <a href="products.php" class="btn btn-primary">View All Products</a>
         </div>
