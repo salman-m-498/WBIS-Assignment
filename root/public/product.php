@@ -37,7 +37,7 @@ include 'includes/header.php';
 ?>
 
 <!-- Product Details Section -->
-<section class="product-details-section">
+<section class="product-details-section" style="padding: 3em 0; background: linear-gradient(to right, #fddde6, #fceabb); border-radius: 0 0 50px 50px;">
     <div class="container">
         <div class="product-details-layout">
             <!-- Product Images -->
