@@ -371,30 +371,348 @@ a:hover {
 
 /* Hero Section */
 .hero-section {
-    background: linear-gradient(to right, #fddde6, #fceabb);
+    background: linear-gradient(135deg, #fddde6 0%, #fceabb 50%, #fff3f6 100%);
     color: #333;
     padding: 5em 2em;
     text-align: center;
     position: relative;
     border-radius: 0 0 50px 50px;
+    overflow: hidden;
+    min-height: 80vh;
+    display: flex;
+    align-items: center;
+}
+
+.hero-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 20% 80%, rgba(249, 60, 100, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(252, 234, 187, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(255, 183, 197, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+.hero-layout {
+    display: grid;
+    grid-template-columns: 40% 60%;
+    gap: 11em;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+    min-height: 70vh;
+}
+
+.hero-content {
+    text-align: left;
+    animation: slideInFromLeft 1s ease-out;
+    padding-right: 1em;
+    max-width: 100%;
 }
 
 .hero-content h1 {
     font-size: 3em;
     margin-bottom: 1rem;
     color: #333;
+    background: linear-gradient(45deg, #f93c64, #ffa726, #ff5722, #ffb74d, #e91e63, #ffd54f, #f93c64);
+    background-size: 400% 400%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradientFlow 9s ease-in-out infinite;
+    line-height: 1.1;
 }
 
 .hero-content p {
     font-size: 1.2rem;
     margin-bottom: 2rem;
-    color: #333;
+    color: #555;
+    line-height: 1.6;
+    animation: fadeInUp 1s ease-out 0.3s both;
 }
 
 .hero-buttons {
     display: flex;
     gap: 20px;
+    justify-content: flex-start;
+    animation: fadeInUp 1s ease-out 0.6s both;
+}
+
+.hero-image {
+    position: relative;
+    display: flex;
     justify-content: center;
+    align-items: center;
+    animation: slideInFromRight 1s ease-out;
+    height: 100%;
+    min-height: 600px;
+    width: 100%;
+}
+
+.hero-toy-collection {
+    position: relative;
+    z-index: 3;
+    animation: gentleFloat 6s ease-in-out infinite;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.floating-toys {
+    width: fit-content;
+    height: auto;
+    max-height: 80vh;
+    object-fit: contain;
+    filter: drop-shadow(0 20px 40px rgba(249, 60, 100, 0.2));
+    transition: all 0.3s ease;
+}
+
+.floating-toys:hover {
+    transform: scale(1.02);
+    filter: drop-shadow(0 25px 50px rgba(249, 60, 100, 0.3));
+}
+
+.hero-decorations {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+}
+
+.decoration-circle {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0.6;
+    animation: rotateFloat 8s linear infinite;
+}
+
+.circle-1 {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #f93c64, #ffa726);
+    top: 20%;
+    left: 10%;
+    animation-delay: 0s;
+}
+
+.circle-2 {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #fceabb, #ffcc80);
+    top: 60%;
+    right: 15%;
+    animation-delay: 2s;
+}
+
+.circle-3 {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #f93c64, #ff7043);
+    bottom: 20%;
+    left: 20%;
+    animation-delay: 4s;
+}
+
+.decoration-star {
+    position: absolute;
+    font-size: 2rem;
+    animation: sparkle 2s ease-in-out infinite;
+}
+
+.star-1 {
+    top: 15%;
+    right: 20%;
+    animation-delay: 0s;
+}
+
+.star-2 {
+    bottom: 30%;
+    right: 10%;
+    animation-delay: 1s;
+}
+
+.star-3 {
+    top: 50%;
+    left: 5%;
+    animation-delay: 0.5s;
+}
+
+/* Hero Animations */
+@keyframes slideInFromLeft {
+    0% {
+        opacity: 0;
+        transform: translateX(-100px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideInFromRight {
+    0% {
+        opacity: 0;
+        transform: translateX(100px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes fadeInUp {
+    0% {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes gentleFloat {
+    0%, 100% {
+        transform: translateY(0px) rotate(0deg);
+    }
+    25% {
+        transform: translateY(-15px) rotate(1deg);
+    }
+    50% {
+        transform: translateY(-10px) rotate(0deg);
+    }
+    75% {
+        transform: translateY(-20px) rotate(-1deg);
+    }
+}
+
+@keyframes rotateFloat {
+    0% {
+        transform: translateY(0px) rotate(0deg);
+    }
+    33% {
+        transform: translateY(-30px) rotate(120deg);
+    }
+    66% {
+        transform: translateY(-15px) rotate(240deg);
+    }
+    100% {
+        transform: translateY(0px) rotate(360deg);
+    }
+}
+
+@keyframes sparkle {
+    0%, 100% {
+        opacity: 0.5;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.3);
+    }
+}
+
+@keyframes gradientFlow {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+@keyframes gradientShift {
+    0% {
+        background: linear-gradient(135deg, #f93c64, #ffa726);
+        -webkit-background-clip: text;
+        background-clip: text;
+    }
+    25% {
+        background: linear-gradient(135deg, #ff5722, #ffb74d);
+        -webkit-background-clip: text;
+        background-clip: text;
+    }
+    50% {
+        background: linear-gradient(135deg, #ff7043, #fceabb);
+        -webkit-background-clip: text;
+        background-clip: text;
+    }
+    75% {
+        background: linear-gradient(135deg, #e91e63, #ffd54f);
+        -webkit-background-clip: text;
+        background-clip: text;
+    }
+    100% {
+        background: linear-gradient(135deg, #f93c64, #ffa726);
+        -webkit-background-clip: text;
+        background-clip: text;
+    }
+}
+
+/* Responsive Hero Design */
+@media (max-width: 968px) {
+    .hero-layout {
+        grid-template-columns: 1fr;
+        gap: 2em;
+        text-align: center;
+        min-height: 60vh;
+    }
+    
+    .hero-content {
+        text-align: center;
+        order: 2;
+        padding-right: 0;
+    }
+    
+    .hero-image {
+        order: 1;
+        min-height: 400px;
+    }
+    
+    .hero-content h1 {
+        font-size: 2.5em;
+    }
+    
+    .hero-buttons {
+        justify-content: center;
+    }
+    
+    .floating-toys {
+        max-height: 60vh;
+    }
+}
+
+@media (max-width: 768px) {
+    .hero-section {
+        padding: 3em 1em;
+        min-height: 70vh;
+    }
+    
+    .hero-content h1 {
+        font-size: 2rem;
+    }
+    
+    .hero-content p {
+        font-size: 1.1rem;
+    }
+    
+    .decoration-circle {
+        display: none;
+    }
+    
+    .decoration-star {
+        font-size: 1.5rem;
+    }
 }
 
 /* Features Section */
@@ -2374,6 +2692,14 @@ a:hover {
 }
 
 .banner-image {
+    position: relative;
+    width: 100%;
+    height: 300px;
+    overflow: hidden;
+}
+
+.banner-image-left {
+    background-position: left;
     position: relative;
     width: 100%;
     height: 300px;

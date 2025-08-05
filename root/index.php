@@ -23,16 +23,28 @@ include 'includes/header.php';
     <div class="hero-slider">
         <div class="hero-slide active">
             <div class="container">
-                <div class="hero-content">
-                    <h1>Welcome to ToyLand Store</h1>
-                    <p>Discover amazing toys and games that spark imagination and create lasting memories</p>
-                    <div class="hero-buttons">
-                        <a href="products.php" class="btn btn-primary">Shop Now</a>
-                        <a href="sale.php" class="btn btn-secondary">View Sale</a>
+                <div class="hero-layout">
+                    <div class="hero-content">
+                        <h1>Welcome to ToyLand Store</h1>
+                        <p>Discover amazing toys and games that spark imagination and create lasting memories</p>
+                        <div class="hero-buttons">
+                            <a href="public/products.php" class="btn btn-primary">Shop Now</a>
+                            <a href="public/sale.php" class="btn btn-secondary">View Sale</a>
+                        </div>
                     </div>
-                </div>
-                <div class="hero-image">
-                    <img src="assets/images/hero-toy-collection.jpg" alt="Amazing Toy Collection">
+                    <div class="hero-image">
+                        <div class="hero-toy-collection">
+                            <img src="assets/images/hero_bg.png" alt="Amazing Toy Collection" class="floating-toys">
+                        </div>
+                        <div class="hero-decorations">
+                            <div class="decoration-circle circle-1"></div>
+                            <div class="decoration-circle circle-2"></div>
+                            <div class="decoration-circle circle-3"></div>
+                            <div class="decoration-star star-1">⭐</div>
+                            <div class="decoration-star star-2">✨</div>
+                            <div class="decoration-star star-3">🌟</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -101,62 +113,62 @@ include 'includes/header.php';
                 <div class="category-content">
                     <h3>Action Figures</h3>
                     <p>Superheroes, characters, and collectibles</p>
-                    <a href="products.php?category=action-figures" class="btn btn-outline">Shop Now</a>
+                    <a href="public/products.php?category=action-figures" class="btn btn-outline">Shop Now</a>
                 </div>
             </div>
             
             <div class="category-card">
                 <div class="category-image">
-                    <img src="assets/images/category-board-games.jpg" alt="Board Games">
+                    <img src="assets/images/category-blind-boxes.jpg" alt="Blind Boxes">
                 </div>
                 <div class="category-content">
-                    <h3>Board Games</h3>
-                    <p>Family fun and strategy games</p>
-                    <a href="products.php?category=board-games" class="btn btn-outline">Shop Now</a>
+                    <h3>Blind Boxes</h3>
+                    <p>Mystery collectibles and surprise toys</p>
+                    <a href="public/products.php?category=blind-boxes" class="btn btn-outline">Shop Now</a>
                 </div>
             </div>
             
             <div class="category-card">
                 <div class="category-image">
-                    <img src="assets/images/category-educational.jpg" alt="Educational Toys">
+                    <img src="assets/images/category-building-blocks-lego.jpg" alt="Building Blocks & LEGO">
                 </div>
                 <div class="category-content">
-                    <h3>Educational Toys</h3>
-                    <p>Learning through play</p>
-                    <a href="products.php?category=educational" class="btn btn-outline">Shop Now</a>
+                    <h3>Building Blocks & LEGO</h3>
+                    <p>Creative building and construction sets</p>
+                    <a href="public/products.php?category=building-blocks-lego" class="btn btn-outline">Shop Now</a>
                 </div>
             </div>
             
             <div class="category-card">
                 <div class="category-image">
-                    <img src="assets/images/category-outdoor.jpg" alt="Outdoor Toys">
+                    <img src="assets/images/category-cars-trucks-trains.jpg" alt="Cars, Trucks & Trains">
                 </div>
                 <div class="category-content">
-                    <h3>Outdoor Toys</h3>
-                    <p>Active play and adventure</p>
-                    <a href="products.php?category=outdoor" class="btn btn-outline">Shop Now</a>
+                    <h3>Cars, Trucks & Trains</h3>
+                    <p>Vehicles for racing and adventure</p>
+                    <a href="public/products.php?category=cars-trucks-trains" class="btn btn-outline">Shop Now</a>
                 </div>
             </div>
             
             <div class="category-card">
                 <div class="category-image">
-                    <img src="assets/images/category-arts-crafts.jpg" alt="Arts & Crafts">
+                    <img src="assets/images/category-games-puzzles.jpg" alt="Games & Puzzles">
                 </div>
                 <div class="category-content">
-                    <h3>Arts & Crafts</h3>
-                    <p>Creative expression and DIY fun</p>
-                    <a href="products.php?category=arts-crafts" class="btn btn-outline">Shop Now</a>
+                    <h3>Games & Puzzles</h3>
+                    <p>Brain teasers and family entertainment</p>
+                    <a href="public/products.php?category=games-puzzles" class="btn btn-outline">Shop Now</a>
                 </div>
             </div>
             
             <div class="category-card">
                 <div class="category-image">
-                    <img src="assets/images/category-babies-toddlers.jpg" alt="Babies & Toddlers">
+                    <img src="assets/images/category-soft-toys.jpg" alt="Soft Toys">
                 </div>
                 <div class="category-content">
-                    <h3>Babies & Toddlers</h3>
-                    <p>Safe and engaging early development</p>
-                    <a href="products.php?category=babies-toddlers" class="btn btn-outline">Shop Now</a>
+                    <h3>Soft Toys</h3>
+                    <p>Cuddly plush friends and companions</p>
+                    <a href="public/products.php?category=soft-toys" class="btn btn-outline">Shop Now</a>
                 </div>
             </div>
         </div>
@@ -268,7 +280,7 @@ include 'includes/header.php';
 <section class="banner-section">
     <div class="container">
         <div class="banner-container banner-reverse floating">
-            <div class="banner-image">
+            <div class="banner-image-left">
                 <img src="assets/images/banners/hotwheels_banner.png" alt="Hot Wheels High-Speed Collection" loading="lazy">
                 <div class="banner-overlay"></div>
             </div>
