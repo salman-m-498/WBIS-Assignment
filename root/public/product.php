@@ -33,7 +33,7 @@ $show_breadcrumb = true;
 $breadcrumb_items = [['url' => 'products.php', 'title' => 'Products']];
 
 // Include header
-include 'includes/header.php';
+include '../includes/header.php';
 ?>
 
 <!-- Product Details Section -->
@@ -43,12 +43,12 @@ include 'includes/header.php';
             <!-- Product Images -->
             <div class="product-images">
                 <div class="main-image">
-                    <img src="<?= htmlspecialchars($main_image) ?>" alt="<?= htmlspecialchars($product['name']) ?>" id="main-product-image">
+                    <img src="/<?= htmlspecialchars($main_image) ?>" alt="<?= htmlspecialchars($product['name']) ?>" id="main-product-image">
                 </div>
                 <div class="thumbnail-images">
                     <?php foreach ($thumbnail_images as $img): ?>
                         <div class="thumbnail" data-image="<?= htmlspecialchars($img) ?>">
-                           <img src="<?= htmlspecialchars($img) ?>" alt="Thumbnail">
+                           <img src="/<?= htmlspecialchars($img) ?>" alt="Thumbnail">
                         </div>
                     <?php endforeach; ?>
                 </div>
@@ -138,13 +138,22 @@ include 'includes/header.php';
                         <p><?= nl2br(htmlspecialchars($product['description'])) ?></p>
                         
                         <h4>Key Features:</h4>
-                        <?= nl2br(htmlspecialchars($product['product_features'])) ?>
+                        <ul>
+                          <?php 
+                          $features = explode("\n", $product['product_features']);
+                          foreach ($features as $feature): 
+                             $clean = trim($feature, "-• \t\r\n");
+                             if ($clean): ?>
+                             <li><?= htmlspecialchars($clean) ?></li>
+                          <?php endif; endforeach; ?>
+                        </ul>
                     </div>
                 </div>
                 
                 <!-- Specifications Tab -->
                 <div class="tab-pane" id="specifications">
                     <div class="product-specifications">
+                        <br>
                          <table class="specs-table">
                          <?php
                          $lines = explode("\n", $product['product_specifications']);
@@ -450,5 +459,5 @@ document.querySelectorAll('.thumbnail').forEach(thumb => {
 
 <?php
 // Include footer
-include 'includes/footer.php';
+include '../includes/footer.php';
 ?> 
