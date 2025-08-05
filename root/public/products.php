@@ -6,9 +6,18 @@ require_once '../includes/db.php';
 $pdo = new PDO("mysql:host=localhost;dbname=web_db;charset=utf8mb4", "root", "");
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-// Get products
-$stmt = $pdo->query("SELECT * FROM products WHERE status = 'active'");
-$products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// Get products by category_id if provided
+if (isset($_GET['category_id'])) {
+    $category_id = $_GET['category_id'];
+    $stmt = $pdo->prepare("SELECT * FROM products WHERE category_id = ? AND status = 'active'");
+    $stmt->execute([$category_id]);
+    $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} else {
+    // Default: get all products
+    $stmt = $pdo->query("SELECT * FROM products WHERE status = 'active'");
+    $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
 
 // Page variables
 $page_title = "Products";
@@ -29,7 +38,7 @@ $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $per_page = 12;
 
 // Include header
-include 'includes/header.php';
+include '../includes/header.php';
 ?>
 
 <!-- Page Header -->
@@ -53,12 +62,12 @@ include 'includes/header.php';
                     <?php foreach ($products as $product): ?>
                         <?php
                             $image_path = str_replace("root/", "", $product['image']);
-                            $product_url = "public/product.php?id=" . urlencode($product['product_id']);
+                            $product_url = "product.php?id=" . urlencode($product['product_id']);
                         ?>
                         <div class="product-card">
                             <div class="product-image">
                                 <a href="<?= $product_url ?>">
-                                    <img src="<?= htmlspecialchars($image_path) ?>" alt="<?= htmlspecialchars($product['name']) ?>">
+                                    <img src="/<?= htmlspecialchars($image_path) ?>" alt="<?= htmlspecialchars($product['name']) ?>">
                                 </a>
 
                                <div class="product-overlay">
@@ -272,5 +281,5 @@ include 'includes/header.php';
 
 <?php
 // Include footer
-include 'includes/footer.php';
+include '../includes/footer.php';
 ?> 

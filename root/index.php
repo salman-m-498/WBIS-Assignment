@@ -44,80 +44,35 @@ include 'includes/header.php';
     </div>
 </section>
 
-<!-- Categories Section -->
 <section class="categories-section">
     <div class="container">
         <div class="section-header">
             <h2>Shop by Category</h2>
             <p>Find the perfect toy for every age and interest</p>
         </div>
-        
+
         <div class="categories-grid">
-            <div class="category-card">
-                <div class="category-image">
-                    <img src="assets/images/category-action-figures.jpg" alt="Action Figures">
+            <?php
+
+            // Fetch top-level categories (no parent_id)
+            $stmt = $pdo->query("SELECT * FROM categories WHERE parent_id IS NULL AND status = 'active' ORDER BY name");
+            $categories = $stmt->fetchAll();
+
+            foreach ($categories as $category):
+                $category_url = 'public/categories.php?category_id=' . urlencode($category['category_id']);
+                $image_path = htmlspecialchars($category['image'] ?? 'assets/images/default-category.jpg');
+            ?>
+                <div class="category-card">
+                    <div class="category-image">
+                        <img src="<?= $image_path ?>" alt="<?= htmlspecialchars($category['name']) ?>">
+                    </div>
+                    <div class="category-content">
+                        <h3><?= htmlspecialchars($category['name']) ?></h3>
+                        <p><?= htmlspecialchars($category['description']) ?></p>
+                        <a href="<?= $category_url ?>" class="btn btn-outline">Shop Now</a>
+                    </div>
                 </div>
-                <div class="category-content">
-                    <h3>Action Figures</h3>
-                    <p>Superheroes, characters, and collectibles</p>
-                    <a href="public/products.php?category=action-figures" class="btn btn-outline">Shop Now</a>
-                </div>
-            </div>
-            
-            <div class="category-card">
-                <div class="category-image">
-                    <img src="assets/images/category-board-games.jpg" alt="Board Games">
-                </div>
-                <div class="category-content">
-                    <h3>Board Games</h3>
-                    <p>Family fun and strategy games</p>
-                    <a href="public/products.php?category=board-games" class="btn btn-outline">Shop Now</a>
-                </div>
-            </div>
-            
-            <div class="category-card">
-                <div class="category-image">
-                    <img src="assets/images/category-educational.jpg" alt="Educational Toys">
-                </div>
-                <div class="category-content">
-                    <h3>Educational Toys</h3>
-                    <p>Learning through play</p>
-                    <a href="public/products.php?category=educational" class="btn btn-outline">Shop Now</a>
-                </div>
-            </div>
-            
-            <div class="category-card">
-                <div class="category-image">
-                    <img src="assets/images/category-outdoor.jpg" alt="Outdoor Toys">
-                </div>
-                <div class="category-content">
-                    <h3>Outdoor Toys</h3>
-                    <p>Active play and adventure</p>
-                    <a href="public/products.php?category=outdoor" class="btn btn-outline">Shop Now</a>
-                </div>
-            </div>
-            
-            <div class="category-card">
-                <div class="category-image">
-                    <img src="assets/images/category-arts-crafts.jpg" alt="Arts & Crafts">
-                </div>
-                <div class="category-content">
-                    <h3>Arts & Crafts</h3>
-                    <p>Creative expression and DIY fun</p>
-                    <a href="public/products.php?category=arts-crafts" class="btn btn-outline">Shop Now</a>
-                </div>
-            </div>
-            
-            <div class="category-card">
-                <div class="category-image">
-                    <img src="assets/images/category-babies-toddlers.jpg" alt="Babies & Toddlers">
-                </div>
-                <div class="category-content">
-                    <h3>Babies & Toddlers</h3>
-                    <p>Safe and engaging early development</p>
-                    <a href="public/products.php?category=babies-toddlers" class="btn btn-outline">Shop Now</a>
-                </div>
-            </div>
+            <?php endforeach; ?>
         </div>
     </div>
 </section>

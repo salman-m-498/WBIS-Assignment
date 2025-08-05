@@ -3,7 +3,7 @@
 define('DB_HOST', 'localhost');
 define('DB_USERNAME', 'root');
 define('DB_PASSWORD', ''); // Default XAMPP MySQL password is empty
-define('DB_NAME', 'test');
+define('DB_NAME', 'web_db');
 
 // Create connection
 try {
