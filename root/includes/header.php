@@ -10,8 +10,11 @@ $root_path = $is_subdirectory ? '../' : '';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo isset($page_title) ? $page_title . ' - ' : ''; ?>ToyLand Store</title>
-    <meta name="description" content="<?php echo isset($page_description) ? $page_description : 'Your one-stop shop for amazing toys and games for all ages'; ?>">
+    <title><?php echo isset($page_title) ? $page_title . ' - ' : ''; ?>Toy Land</title>
+    <meta name="description" content="<?php echo isset($page_description) ? $page_description : 'Where Fun Comes to Life! Discover toys that spark imagination and smiles'; ?>">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&display=swap" rel="stylesheet">
     
     <!-- CSS -->
     <link rel="stylesheet" href="<?php echo $assets_path; ?>/css/style.css">
@@ -27,8 +30,9 @@ $root_path = $is_subdirectory ? '../' : '';
     <div class="top-bar">
         <div class="container">
             <div class="top-bar-left">
-                <span><i class="fas fa-phone"></i> Call us: (555) 123-4567</span>
-                <span><i class="fas fa-envelope"></i> info@toylandstore.com</span>
+                <span>🚀 Fast Delivery</span>
+                <span>🧸 Unique Characters</span>
+                <span>🎁 Gift Ready</span>
             </div>
             <div class="top-bar-right">
                 <a href="shipping.php">Free Shipping on Orders Over $50</a>
@@ -47,8 +51,8 @@ $root_path = $is_subdirectory ? '../' : '';
             <div class="header-top">
                 <div class="logo">
                     <a href="<?php echo $root_path; ?>index.php">
-                        <h1>ToyLand Store</h1>
-                        <span>Where Imagination Comes to Life</span>
+                        <h1>Toy Land</h1>
+                        <span>Where Fun Comes to Life!</span>
                     </a>
                 </div>
                 

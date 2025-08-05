@@ -70,6 +70,7 @@
     </button>
 
     <!-- JavaScript -->
+    <script src="assets/js/toyland.js"></script>
     <script src="assets/js/main.js"></script>
     <script src="assets/js/cart.js"></script>
     

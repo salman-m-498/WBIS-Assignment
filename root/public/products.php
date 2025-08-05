@@ -33,10 +33,10 @@ include 'includes/header.php';
 ?>
 
 <!-- Page Header -->
-<section class="page-header">
+<section class="page-header" style="background: linear-gradient(to right, #fddde6, #fceabb); padding: 3em 0; border-radius: 0 0 50px 50px;">
     <div class="container">
-        <h1>All Products</h1>
-        <p>Discover amazing toys and games for every age and interest</p>
+        <h1 style="color: #333;">All Products</h1>
+        <p style="color: #333;">Discover amazing toys and games for every age and interest</p>
     </div>
 </section>
 
