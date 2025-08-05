@@ -37,49 +37,79 @@ include '../includes/header.php';
 ?>
 
 <!-- Product Details Section -->
-<section class="product-details-section" style="padding: 3em 0; background: linear-gradient(to right, #fddde6, #fceabb); border-radius: 0 0 50px 50px;">
+<section class="product-details-section">
     <div class="container">
         <div class="product-details-layout">
             <!-- Product Images -->
             <div class="product-images">
                 <div class="main-image">
-                    <img src="/<?= htmlspecialchars($main_image) ?>" alt="<?= htmlspecialchars($product['name']) ?>" id="main-product-image">
+                    <?php if (!empty($main_image)): ?>
+                        <img src="/<?= htmlspecialchars($main_image) ?>" alt="<?= htmlspecialchars($product['name']) ?>" id="main-product-image" onerror="this.src='https://via.placeholder.com/500x400/f93c64/ffffff?text=<?= urlencode($product['name']) ?>'">
+                    <?php else: ?>
+                        <img src="https://via.placeholder.com/500x400/f93c64/ffffff?text=<?= urlencode($product['name']) ?>" alt="<?= htmlspecialchars($product['name']) ?>" id="main-product-image">
+                    <?php endif; ?>
                 </div>
+                
+                <?php if (!empty($thumbnail_images)): ?>
                 <div class="thumbnail-images">
+                    <div class="thumbnail active" data-image="/<?= htmlspecialchars($main_image) ?>">
+                        <img src="/<?= htmlspecialchars($main_image) ?>" alt="Main view" onerror="this.src='https://via.placeholder.com/100x80/f93c64/ffffff?text=Main'">
+                    </div>
                     <?php foreach ($thumbnail_images as $img): ?>
-                        <div class="thumbnail" data-image="<?= htmlspecialchars($img) ?>">
-                           <img src="/<?= htmlspecialchars($img) ?>" alt="Thumbnail">
+                        <div class="thumbnail" data-image="/<?= htmlspecialchars($img) ?>">
+                           <img src="/<?= htmlspecialchars($img) ?>" alt="Alternative view" onerror="this.src='https://via.placeholder.com/100x80/f93c64/ffffff?text=Alt'">
                         </div>
                     <?php endforeach; ?>
                 </div>
+                <?php endif; ?>
             </div>
 
-            
             <!-- Product Info -->
             <div class="product-info">
                 <div class="product-header">
                     <h1><?= htmlspecialchars($product['name']) ?></h1>
+                    
+                    <div class="product-rating">
+                        <div class="stars">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <span>5.0 out of 5</span>
+                        <span>(24 reviews)</span>
+                    </div>
+                    
+                    <div class="product-badges">
+                        <?php if ($product['price'] > $product['sale_price']): ?>
+                            <span class="badge sale">Sale</span>
+                        <?php endif; ?>
+                        <span class="badge new">New</span>
+                    </div>
+                </div>
+                
                 <div class="product-price">
                     <span class="current-price">RM <?= number_format($product['sale_price'], 2) ?></span>
                     <?php if ($product['price'] > $product['sale_price']): ?>
                         <span class="original-price">RM <?= number_format($product['price'], 2) ?></span>
-                        <span class="discount">Save RM <?= number_format($product['price'] - $product['sale_price'], 2) ?></span>
+                        <span class="discount">Save RM <?= number_format($product['price'] - $product['sale_price'], 2) ?> (<?= round((($product['price'] - $product['sale_price']) / $product['price']) * 100) ?>% off)</span>
                     <?php endif; ?>
                 </div>
                 
                 <div class="product-description">
-                     <p><?= nl2br(htmlspecialchars($product['description'])) ?></p>
+                    <p><?= nl2br(htmlspecialchars($product['description'])) ?></p>
+                </div>
                 
                 <div class="product-options">
                     <div class="option-group">
-                        <label>Color:</label>
+                        <label>Available Colors:</label>
                         <div class="color-options">
-                            <button class="color-option active" data-color="blue" style="background-color: #0066cc;"></button>
-                            <button class="color-option" data-color="red" style="background-color: #cc0000;"></button>
-                            <button class="color-option" data-color="green" style="background-color: #00cc00;"></button>
+                            <button class="color-option active" data-color="blue" style="background-color: #0066cc;" title="Blue"></button>
+                            <button class="color-option" data-color="red" style="background-color: #cc0000;" title="Red"></button>
+                            <button class="color-option" data-color="green" style="background-color: #00cc00;" title="Green"></button>
                         </div>
                     </div>
-                    
                 </div>
                 
                 <div class="product-actions">
@@ -87,30 +117,32 @@ include '../includes/header.php';
                         <input type="hidden" name="product_id" value="<?= $product_id ?>">
                         <label for="quantity">Quantity:</label>
                         <input type="number" name="quantity" id="quantity" value="1" min="1" max="<?= $product['stock_quantity'] ?>">
-                        <button type="submit" class="btn btn-primary"><i class="fas fa-shopping-cart"></i> Add to Cart</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-shopping-cart"></i> Add to Cart
+                        </button>
                     </form>
                 </div>
-            </div>
-        </div>
-    </div>
                 
                 <div class="product-meta">
                     <div><strong>SKU:</strong> <?= htmlspecialchars($product['sku']) ?></div>
-                    <div><strong>Stock:</strong> <?= htmlspecialchars($product['stock_quantity']) ?> available</div>
-                    <div><strong>Category ID:</strong> <?= htmlspecialchars($product['category_id']) ?></div>
+                    <div><strong>Stock:</strong> <?= htmlspecialchars($product['stock_quantity']) ?> items available</div>
+                    <div><strong>Category:</strong> <?= htmlspecialchars($product['category_id']) ?></div>
+                    <div><strong>Brand:</strong> Toy Land</div>
                 </div>
                 
                 <div class="product-shipping">
                     <div class="shipping-info">
                         <i class="fas fa-shipping-fast"></i>
                         <div>
-                            <strong>Free Shipping</strong> on orders over $50
+                            <strong>Free Shipping</strong>
+                            <span>On orders over RM 150</span>
                         </div>
                     </div>
                     <div class="shipping-info">
                         <i class="fas fa-undo"></i>
                         <div>
-                            <strong>30-Day Returns</strong> - Easy returns and exchanges
+                            <strong>30-Day Returns</strong>
+                            <span>Easy returns & exchanges</span>
                         </div>
                     </div>
                 </div>
@@ -331,41 +363,41 @@ include '../includes/header.php';
 </section>
 
 <!-- Related Products Section -->
-<section class="related-products-section">
+<section class="related-products">
     <div class="container">
-        <div class="section-header">
-            <h2>Related Products</h2>
-            <p>You might also like these products</p>
-        </div>
+        <h3>You Might Also Like</h3>
         
-        <div class="products-grid">
+        <div class="related-grid">
             <!-- Related Product 1 -->
-            <div class="product-card">
-                <div class="product-image">
-                    <img src="assets/images/product-9.jpg" alt="Robot Companion Figure">
-                    <div class="product-overlay">
-                        <button class="quick-view" data-product-id="9">Quick View</button>
-                        <button class="add-to-wishlist" data-product-id="9"><i class="far fa-heart"></i></button>
-                    </div>
-                </div>
-                <div class="product-content">
-                    <h3><a href="product.php?id=9">Robot Companion Figure</a></h3>
-                    <div class="product-rating">
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="far fa-star"></i>
-                        <span>(16 reviews)</span>
-                    </div>
-                    <div class="product-price">
-                        <span class="current-price">$19.99</span>
-                    </div>
-                    <button class="add-to-cart" data-product-id="9">Add to Cart</button>
-                </div>
+            <div class="related-item">
+                <img src="../assets/images/product-9.jpg" alt="Robot Companion Figure" onerror="this.src='https://via.placeholder.com/200x150/f93c64/ffffff?text=Toy'">
+                <h4><a href="product.php?id=9">Robot Companion Figure</a></h4>
+                <div class="price">$19.99</div>
             </div>
             
             <!-- Related Product 2 -->
+            <div class="related-item">
+                <img src="../assets/images/product-10.jpg" alt="Space Explorer Set" onerror="this.src='https://via.placeholder.com/200x150/f93c64/ffffff?text=Toy'">
+                <h4><a href="product.php?id=10">Space Explorer Set</a></h4>
+                <div class="price">$34.99</div>
+            </div>
+            
+            <!-- Related Product 3 -->
+            <div class="related-item">
+                <img src="../assets/images/product-11.jpg" alt="Adventure Action Figure" onerror="this.src='https://via.placeholder.com/200x150/f93c64/ffffff?text=Toy'">
+                <h4><a href="product.php?id=11">Adventure Action Figure</a></h4>
+                <div class="price">$24.99</div>
+            </div>
+            
+            <!-- Related Product 4 -->
+            <div class="related-item">
+                <img src="../assets/images/product-12.jpg" alt="Fantasy Warrior Set" onerror="this.src='https://via.placeholder.com/200x150/f93c64/ffffff?text=Toy'">
+                <h4><a href="product.php?id=12">Fantasy Warrior Set</a></h4>
+                <div class="price">$29.99</div>
+            </div>
+        </div>
+    </div>
+</section>
             <div class="product-card">
                 <div class="product-image">
                     <img src="assets/images/product-10.jpg" alt="Space Warrior Figure">
@@ -449,11 +481,110 @@ include '../includes/header.php';
 </section>
 
 <script>
-document.querySelectorAll('.thumbnail').forEach(thumb => {
-    thumb.addEventListener('click', () => {
-        const newSrc = thumb.getAttribute('data-image');
-        document.getElementById('main-product-image').src = newSrc;
+// Enhanced Product Page JavaScript
+document.addEventListener('DOMContentLoaded', function() {
+    // Image Viewer Functionality
+    const mainImage = document.getElementById('main-product-image');
+    const thumbnails = document.querySelectorAll('.thumbnail');
+    
+    thumbnails.forEach(thumb => {
+        thumb.addEventListener('click', function() {
+            // Remove active class from all thumbnails
+            thumbnails.forEach(t => t.classList.remove('active'));
+            
+            // Add active class to clicked thumbnail
+            this.classList.add('active');
+            
+            // Update main image
+            const newSrc = this.getAttribute('data-image');
+            if (mainImage) {
+                mainImage.style.opacity = '0.5';
+                setTimeout(() => {
+                    mainImage.src = newSrc;
+                    mainImage.style.opacity = '1';
+                }, 150);
+            }
+        });
     });
+    
+    // Color Option Selection
+    const colorOptions = document.querySelectorAll('.color-option');
+    colorOptions.forEach(option => {
+        option.addEventListener('click', function() {
+            colorOptions.forEach(opt => opt.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+    
+    // Tab Functionality
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const tabPanes = document.querySelectorAll('.tab-pane');
+    
+    tabButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const targetTab = this.getAttribute('data-tab');
+            
+            // Remove active class from all buttons and panes
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            tabPanes.forEach(pane => pane.classList.remove('active'));
+            
+            // Add active class to clicked button and corresponding pane
+            this.classList.add('active');
+            const targetPane = document.getElementById(targetTab);
+            if (targetPane) {
+                targetPane.classList.add('active');
+            }
+        });
+    });
+    
+    // Quantity Input Validation
+    const quantityInput = document.getElementById('quantity');
+    if (quantityInput) {
+        quantityInput.addEventListener('change', function() {
+            const min = parseInt(this.getAttribute('min'));
+            const max = parseInt(this.getAttribute('max'));
+            let value = parseInt(this.value);
+            
+            if (value < min) this.value = min;
+            if (value > max) this.value = max;
+        });
+    }
+    
+    // Add to Cart Animation
+    const addToCartBtn = document.querySelector('.product-actions .btn-primary');
+    if (addToCartBtn) {
+        addToCartBtn.addEventListener('click', function(e) {
+            // Add loading state
+            const originalText = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
+            this.disabled = true;
+            
+            // Trigger confetti
+            if (typeof launchConfetti === 'function') {
+                launchConfetti();
+            }
+            
+            // Reset button after 2 seconds (you can remove this in production)
+            setTimeout(() => {
+                this.innerHTML = originalText;
+                this.disabled = false;
+            }, 2000);
+        });
+    }
+    
+    // Image Zoom on Hover (Desktop)
+    if (window.innerWidth > 768) {
+        const mainImageContainer = document.querySelector('.main-image');
+        if (mainImageContainer) {
+            mainImageContainer.addEventListener('mouseenter', function() {
+                this.style.cursor = 'zoom-in';
+            });
+            
+            mainImageContainer.addEventListener('mouseleave', function() {
+                this.style.cursor = 'default';
+            });
+        }
+    }
 });
 </script>
 
