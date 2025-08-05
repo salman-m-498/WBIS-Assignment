@@ -20,13 +20,20 @@ include 'includes/header.php';
 
 <!-- Hero Section -->
 <section class="hero-section">
-    <div class="container">
-        <div class="hero-content">
-            <h1>Where Fun Comes to Life!</h1>
-            <p>Discover toys that spark imagination and smiles.</p>
-            <div class="hero-buttons">
-                <button class="btn btn-primary" onclick="launchConfetti()">Shop Now</button>
-                <a href="public/sale.php" class="btn btn-secondary">View Sale</a>
+    <div class="hero-slider">
+        <div class="hero-slide active">
+            <div class="container">
+                <div class="hero-content">
+                    <h1>Welcome to ToyLand Store</h1>
+                    <p>Discover amazing toys and games that spark imagination and create lasting memories</p>
+                    <div class="hero-buttons">
+                        <a href="products.php" class="btn btn-primary">Shop Now</a>
+                        <a href="sale.php" class="btn btn-secondary">View Sale</a>
+                    </div>
+                </div>
+                <div class="hero-image">
+                    <img src="assets/images/hero-toy-collection.jpg" alt="Amazing Toy Collection">
+                </div>
             </div>
         </div>
     </div>
@@ -36,43 +43,176 @@ include 'includes/header.php';
 <section class="features-section">
     <div class="container">
         <div class="features-grid">
-            <div class="feature-item">🚀 Fast Delivery</div>
-            <div class="feature-item">🧸 Unique Characters</div>
-            <div class="feature-item">🎁 Gift Ready</div>
-            <div class="feature-item">🛡️ Safe & Secure</div>
+            <div class="feature-item">
+                <i class="fas fa-shipping-fast"></i>
+                <h3>Free Shipping</h3>
+                <p>Free shipping on orders over $50</p>
+            </div>
+            <div class="feature-item">
+                <i class="fas fa-shield-alt"></i>
+                <h3>Safe & Secure</h3>
+                <p>All toys meet safety standards</p>
+            </div>
+            <div class="feature-item">
+                <i class="fas fa-undo"></i>
+                <h3>Easy Returns</h3>
+                <p>30-day return policy</p>
+            </div>
+            <div class="feature-item">
+                <i class="fas fa-headset"></i>
+                <h3>24/7 Support</h3>
+                <p>Customer service always available</p>
+            </div>
         </div>
     </div>
 </section>
 
+<!-- Featured Banner - LEGO -->
+<section class="banner-section">
+    <div class="container">
+        <div class="banner-container floating">
+            <div class="banner-image">
+                <img src="assets/images/banners/lego_banner.png" alt="LEGO Collection" loading="lazy">
+                <div class="banner-overlay"></div>
+            </div>
+            <div class="banner-content">
+                <h3>Build Your Dreams with LEGO</h3>
+                <p>Endless creativity and imagination await with our premium LEGO collection</p>
+                <!-- TODO: Change link to redirect to LEGO category when categories are set up -->
+                <a href="public/products.php" class="banner-btn">Explore LEGO Sets</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Categories Section -->
 <section class="categories-section">
     <div class="container">
         <div class="section-header">
             <h2>Shop by Category</h2>
             <p>Find the perfect toy for every age and interest</p>
         </div>
-
+        
         <div class="categories-grid">
-            <?php
+            <div class="category-card">
+                <div class="category-image">
+                    <img src="assets/images/category-action-figures.jpg" alt="Action Figures">
+                </div>
+                <div class="category-content">
+                    <h3>Action Figures</h3>
+                    <p>Superheroes, characters, and collectibles</p>
+                    <a href="products.php?category=action-figures" class="btn btn-outline">Shop Now</a>
+                </div>
+            </div>
+            
+            <div class="category-card">
+                <div class="category-image">
+                    <img src="assets/images/category-board-games.jpg" alt="Board Games">
+                </div>
+                <div class="category-content">
+                    <h3>Board Games</h3>
+                    <p>Family fun and strategy games</p>
+                    <a href="products.php?category=board-games" class="btn btn-outline">Shop Now</a>
+                </div>
+            </div>
+            
+            <div class="category-card">
+                <div class="category-image">
+                    <img src="assets/images/category-educational.jpg" alt="Educational Toys">
+                </div>
+                <div class="category-content">
+                    <h3>Educational Toys</h3>
+                    <p>Learning through play</p>
+                    <a href="products.php?category=educational" class="btn btn-outline">Shop Now</a>
+                </div>
+            </div>
+            
+            <div class="category-card">
+                <div class="category-image">
+                    <img src="assets/images/category-outdoor.jpg" alt="Outdoor Toys">
+                </div>
+                <div class="category-content">
+                    <h3>Outdoor Toys</h3>
+                    <p>Active play and adventure</p>
+                    <a href="products.php?category=outdoor" class="btn btn-outline">Shop Now</a>
+                </div>
+            </div>
+            
+            <div class="category-card">
+                <div class="category-image">
+                    <img src="assets/images/category-arts-crafts.jpg" alt="Arts & Crafts">
+                </div>
+                <div class="category-content">
+                    <h3>Arts & Crafts</h3>
+                    <p>Creative expression and DIY fun</p>
+                    <a href="products.php?category=arts-crafts" class="btn btn-outline">Shop Now</a>
+                </div>
+            </div>
+            
+            <div class="category-card">
+                <div class="category-image">
+                    <img src="assets/images/category-babies-toddlers.jpg" alt="Babies & Toddlers">
+                </div>
+                <div class="category-content">
+                    <h3>Babies & Toddlers</h3>
+                    <p>Safe and engaging early development</p>
+                    <a href="products.php?category=babies-toddlers" class="btn btn-outline">Shop Now</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
 
-            // Fetch top-level categories (no parent_id)
-            $stmt = $pdo->query("SELECT * FROM categories WHERE parent_id IS NULL AND status = 'active' ORDER BY name");
-            $categories = $stmt->fetchAll();
-
-            foreach ($categories as $category):
-                $category_url = 'public/categories.php?category_id=' . urlencode($category['category_id']);
-                $image_path = htmlspecialchars($category['image'] ?? 'assets/images/default-category.jpg');
-            ?>
-                <div class="category-card">
-                    <div class="category-image">
-                        <img src="<?= $image_path ?>" alt="<?= htmlspecialchars($category['name']) ?>">
+<!-- Featured Banners Grid -->
+<section class="banner-section">
+    <div class="container">
+        <div class="featured-banners">
+            <!-- Large Barbie Banner -->
+            <div class="large-banner">
+                <div class="banner-container banner-center">
+                    <div class="banner-image">
+                        <img src="assets/images/banners/barbie_banner.png" alt="Barbie Collection" loading="lazy">
+                        <div class="banner-overlay"></div>
                     </div>
-                    <div class="category-content">
-                        <h3><?= htmlspecialchars($category['name']) ?></h3>
-                        <p><?= htmlspecialchars($category['description']) ?></p>
-                        <a href="<?= $category_url ?>" class="btn btn-outline">Shop Now</a>
+                    <div class="banner-content">
+                        <h3>Discover Barbie's Magical World</h3>
+                        <p>Fashion, fun, and endless adventures with the world's most beloved doll</p>
+                        <!-- TODO: Change link to redirect to Barbie category when categories are set up -->
+                        <a href="public/products.php" class="banner-btn">Shop Barbie Collection</a>
                     </div>
                 </div>
-            <?php endforeach; ?>
+            </div>
+            
+            <!-- Small Hot Wheels Banners -->
+            <div class="small-banner">
+                <div class="banner-container banner-reverse">
+                    <div class="banner-image">
+                        <img src="assets/images/banners/hotwheels_banner.png" alt="Hot Wheels Collection" loading="lazy">
+                        <div class="banner-overlay"></div>
+                    </div>
+                    <div class="banner-content">
+                        <h3>Hot Wheels Racing</h3>
+                        <p>Speed into action with premium die-cast cars</p>
+                        <!-- TODO: Change link to redirect to Hot Wheels category when categories are set up -->
+                        <a href="public/products.php" class="banner-btn">Race Now</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="small-banner">
+                <div class="banner-container">
+                    <div class="banner-image">
+                        <img src="assets/images/banners/lego_banner.png" alt="LEGO Collection" loading="lazy">
+                        <div class="banner-overlay"></div>
+                    </div>
+                    <div class="banner-content">
+                        <h3>LEGO Adventures</h3>
+                        <p>Build, create, and explore infinite possibilities</p>
+                        <!-- TODO: Change link to redirect to LEGO category when categories are set up -->
+                        <a href="public/products.php" class="banner-btn">Build Dreams</a>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </section>
@@ -119,7 +259,25 @@ include 'includes/header.php';
         </div>
 
         <div class="view-all-products">
-            <a href="public/products.php" class="btn btn-primary">View All Products</a>
+            <a href="products.php" class="btn btn-primary">View All Products</a>
+        </div>
+    </div>
+</section>
+
+<!-- Hot Wheels Speed Banner -->
+<section class="banner-section">
+    <div class="container">
+        <div class="banner-container banner-reverse floating">
+            <div class="banner-image">
+                <img src="assets/images/banners/hotwheels_banner.png" alt="Hot Wheels High-Speed Collection" loading="lazy">
+                <div class="banner-overlay"></div>
+            </div>
+            <div class="banner-content">
+                <h3>Feel the Need for Speed</h3>
+                <p>Race into excitement with Hot Wheels' fastest and most thrilling car collection</p>
+                <!-- TODO: Change link to redirect to Hot Wheels category when categories are set up -->
+                <a href="public/products.php" class="banner-btn">Start Your Engines</a>
+            </div>
         </div>
     </div>
 </section>
@@ -132,7 +290,7 @@ include 'includes/header.php';
                 <div class="promo-content">
                     <h2>New Arrivals</h2>
                     <p>Check out the latest toys and games that just arrived</p>
-                    <a href="public/products.php?filter=new" class="btn btn-white">Shop New</a>
+                    <a href="new-arrivals.php" class="btn btn-white">Shop New</a>
                 </div>
                 <div class="promo-image">
                     <img src="assets/images/promo-new-arrivals.jpg" alt="New Arrivals">
@@ -143,7 +301,7 @@ include 'includes/header.php';
                 <div class="promo-content">
                     <h2>Sale Items</h2>
                     <p>Up to 50% off on selected toys and games</p>
-                    <a href="public/sale.php" class="btn btn-white">Shop Sale</a>
+                    <a href="sale.php" class="btn btn-white">Shop Sale</a>
                 </div>
                 <div class="promo-image">
                     <img src="assets/images/promo-sale.jpg" alt="Sale Items">
@@ -222,23 +380,3 @@ include 'includes/header.php';
 // Include footer
 include 'includes/footer.php';
 ?>
-
-<script>
-function launchConfetti() {
-    const emojis = ['🌟','🎈','🎉','✨','💃','🥳','🎊','🦄','🌈','🎯'];
-    for (let i = 0; i < 60; i++) {
-        const span = document.createElement('span');
-        span.innerText = emojis[Math.floor(Math.random()*emojis.length)];
-        span.className = 'confetti';
-        span.style.left = Math.random()*100 + 'vw';
-        span.style.animationDelay = Math.random() * 2 + 's';
-        document.body.appendChild(span);
-        setTimeout(() => span.remove(), 3000);
-    }
-    
-    // Navigate to products page after confetti
-    setTimeout(() => {
-        window.location.href = 'public/products.php';
-    }, 1500);
-}
-</script>
