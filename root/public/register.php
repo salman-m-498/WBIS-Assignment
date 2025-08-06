@@ -162,12 +162,11 @@ include '../includes/header.php';
                                 <label for="country">Country</label>
                                 <select id="country" name="country" required>
                                     <option value="">Select Country</option>
-                                    <option value="US">United States</option>
-                                    <option value="CA">Canada</option>
-                                    <option value="UK">United Kingdom</option>
+                                    <option value="MY">Malaysia</option>
+                                    <option value="SG">Singapore</option>
+                                    <option value="CN">China</option>
                                     <option value="AU">Australia</option>
-                                    <option value="DE">Germany</option>
-                                    <option value="FR">France</option>
+                                    <option value="KR">Korea</option>
                                     <option value="JP">Japan</option>
                                 </select>
                                 <i class="fas fa-globe"></i>
