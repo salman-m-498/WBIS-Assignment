@@ -10,7 +10,7 @@ $breadcrumb_items = [
 ];
 
 // Include header
-include 'includes/header.php';
+include  "../includes/header.php";
 ?>
 
 <!-- About Hero Section -->
@@ -18,7 +18,7 @@ include 'includes/header.php';
     <div class="container">
         <div class="about-hero-content">
             <h1>About ToyLand Store</h1>
-            <p>Bringing joy and imagination to children and families since 2010</p>
+            <p>Bringing joy and imagination to Malaysian families since 2010</p>
         </div>
     </div>
 </section>
@@ -29,11 +29,11 @@ include 'includes/header.php';
         <div class="story-layout">
             <div class="story-content">
                 <h2>Our Story</h2>
-                <p>Founded in 2010 by a group of passionate parents and educators, ToyLand Store began with a simple mission: to provide high-quality, educational, and fun toys that help children learn and grow while having a great time.</p>
+                <p>Founded in 2010 by a group of passionate Malaysian parents and educators in Kuala Lumpur, ToyLand Store began with a simple mission: to provide high-quality, educational, and fun toys that help children learn and grow while having a great time.</p>
                 
-                <p>What started as a small local toy store has grown into one of the most trusted online destinations for toys and games. We've maintained our commitment to quality and safety while expanding our selection to include thousands of products from the world's most respected toy manufacturers.</p>
+                <p>What started as a small local toy store in Pavilion Kuala Lumpur has grown into one of Malaysia's most trusted online destinations for toys and games. We've maintained our commitment to quality and safety while expanding our selection to include thousands of products from the world's most respected toy manufacturers.</p>
                 
-                <p>Today, we serve families across the country, helping parents find the perfect toys for their children's development and entertainment needs.</p>
+                <p>Today, we serve families across Malaysia and Southeast Asia, helping parents find the perfect toys for their children's development and entertainment needs, celebrating our rich multicultural heritage through play.</p>
             </div>
             <div class="story-image">
                 <img src="assets/images/about-story.jpg" alt="ToyLand Store History">
@@ -59,7 +59,7 @@ include 'includes/header.php';
                     <i class="fas fa-eye"></i>
                 </div>
                 <h3>Our Vision</h3>
-                <p>To be the leading destination for quality toys and games, recognized for our commitment to safety, education, and customer satisfaction.</p>
+                <p>To be Southeast Asia's leading destination for quality toys and games, recognized for our commitment to safety, education, and customer satisfaction while celebrating our diverse cultural heritage.</p>
             </div>
             
             <div class="mission-card">
@@ -71,8 +71,9 @@ include 'includes/header.php';
                     <li>Quality and Safety First</li>
                     <li>Customer Satisfaction</li>
                     <li>Educational Excellence</li>
-                    <li>Family Values</li>
+                    <li>Malaysian Family Values</li>
                     <li>Community Support</li>
+                    <li>Cultural Diversity & Inclusion</li>
                 </ul>
             </div>
         </div>
@@ -84,7 +85,7 @@ include 'includes/header.php';
     <div class="container">
         <div class="section-header">
             <h2>Why Choose ToyLand Store?</h2>
-            <p>We're committed to providing the best shopping experience for families</p>
+            <p>We're committed to providing the best shopping experience for Malaysian families</p>
         </div>
         
         <div class="features-grid">
@@ -109,7 +110,7 @@ include 'includes/header.php';
                     <i class="fas fa-shipping-fast"></i>
                 </div>
                 <h3>Fast & Reliable Shipping</h3>
-                <p>Quick delivery to your doorstep with careful packaging to ensure your toys arrive in perfect condition.</p>
+                <p>Quick delivery across Malaysia with careful packaging to ensure your toys arrive in perfect condition. Same-day delivery available in Klang Valley.</p>
             </div>
             
             <div class="feature-item">
@@ -143,52 +144,52 @@ include 'includes/header.php';
 <section class="our-team-section">
     <div class="container">
         <div class="section-header">
-            <h2>Meet Our Team</h2>
+            <h2>Meet Our Malaysian Team</h2>
             <p>The passionate people behind ToyLand Store</p>
         </div>
         
         <div class="team-grid">
             <div class="team-member">
                 <div class="member-image">
-                    <img src="assets/images/team-ceo.jpg" alt="Sarah Johnson - CEO">
+                    <img src="assets/images/team-ceo.jpg" alt="Stepahnie - CEO">
                 </div>
                 <div class="member-info">
-                    <h3>Sarah Johnson</h3>
+                    <h3>Stephanie</h3>
                     <span class="position">CEO & Founder</span>
-                    <p>A former educator with 15+ years of experience in child development, Sarah founded ToyLand Store with a vision to make quality educational toys accessible to all families.</p>
+                    <p>Founded ToyLand Store with a vision to make quality educational toys accessible to all Malaysian families.</p>
                 </div>
             </div>
             
             <div class="team-member">
                 <div class="member-image">
-                    <img src="assets/images/team-cto.jpg" alt="Michael Chen - CTO">
+                    <img src="assets/images/team-cto.jpg" alt="Salman - CTO">
                 </div>
                 <div class="member-info">
-                    <h3>Michael Chen</h3>
+                    <h3>Salman</h3>
                     <span class="position">Chief Technology Officer</span>
-                    <p>Michael leads our technology initiatives, ensuring our website provides the best shopping experience with secure, fast, and user-friendly features.</p>
+                    <p>He leads our technology initiatives, ensuring our website provides the best shopping experience with secure, fast, and user-friendly features for Malaysian customers.</p>
                 </div>
             </div>
             
             <div class="team-member">
                 <div class="member-image">
-                    <img src="assets/images/team-curator.jpg" alt="Emily Rodriguez - Product Curator">
+                    <img src="assets/images/team-curator.jpg" alt="Wen Yu - Product Curator">
                 </div>
                 <div class="member-info">
-                    <h3>Emily Rodriguez</h3>
+                    <h3>Wen Yu</h3>
                     <span class="position">Product Curator</span>
-                    <p>Emily has a keen eye for quality toys and works tirelessly to find the best products that combine fun, education, and safety.</p>
+                    <p>She has a keen eye for quality toys and works tirelessly to find the best products that combine fun, education, and safety, with special focus on multicultural learning.</p>
                 </div>
             </div>
             
             <div class="team-member">
                 <div class="member-image">
-                    <img src="assets/images/team-support.jpg" alt="David Thompson - Customer Support">
+                    <img src="assets/images/team-support.jpg" alt="Aiman - Customer Support">
                 </div>
                 <div class="member-info">
-                    <h3>David Thompson</h3>
+                    <h3>Aiman</h3>
                     <span class="position">Customer Support Manager</span>
-                    <p>David and his team ensure every customer receives personalized attention and expert advice to find the perfect toys for their needs.</p>
+                    <p>Aiman and his multilingual team ensure every customer receives personalized attention and expert advice to find the perfect toys for their needs, in English, Bahasa Malaysia, and Mandarin.</p>
                 </div>
             </div>
         </div>
@@ -200,12 +201,12 @@ include 'includes/header.php';
     <div class="container">
         <div class="stats-grid">
             <div class="stat-item">
-                <div class="stat-number">50,000+</div>
-                <div class="stat-label">Happy Customers</div>
+                <div class="stat-number">75,000+</div>
+                <div class="stat-label">Happy Malaysian Families</div>
             </div>
             
             <div class="stat-item">
-                <div class="stat-number">10,000+</div>
+                <div class="stat-number">15,000+</div>
                 <div class="stat-label">Products Available</div>
             </div>
             
@@ -215,7 +216,7 @@ include 'includes/header.php';
             </div>
             
             <div class="stat-item">
-                <div class="stat-number">4.8/5</div>
+                <div class="stat-number">4.9/5</div>
                 <div class="stat-label">Customer Rating</div>
             </div>
         </div>
@@ -226,46 +227,46 @@ include 'includes/header.php';
 <section class="testimonials-section">
     <div class="container">
         <div class="section-header">
-            <h2>What Our Customers Say</h2>
+            <h2>What Our Malaysian Customers Say</h2>
             <p>Real stories from families who love our toys</p>
         </div>
         
         <div class="testimonials-grid">
             <div class="testimonial-card">
                 <div class="testimonial-content">
-                    <p>"ToyLand Store has been our go-to for birthday gifts and educational toys. The quality is always excellent and the customer service is outstanding!"</p>
+                    <p>"ToyLand Store has been our go-to for birthday gifts and educational toys. The quality is always excellent and the customer service is outstanding! Fast delivery to Selangor too!"</p>
                 </div>
                 <div class="testimonial-author">
                     <img src="assets/images/customer-1.jpg" alt="Lisa Chen">
                     <div>
-                        <h4>Lisa Chen</h4>
-                        <span>Verified Customer</span>
+                        <h4>Lisa Wong</h4>
+                        <span>Verified Customer, KL</span>
                     </div>
                 </div>
             </div>
             
             <div class="testimonial-card">
                 <div class="testimonial-content">
-                    <p>"As a teacher, I appreciate the educational focus of their toy selection. My students love the learning games we get from ToyLand Store."</p>
+                    <p>"As a teacher in Johor, I appreciate the educational focus of their toy selection. My students love the learning games we get from ToyLand Store, and they deliver to our school quickly."</p>
                 </div>
                 <div class="testimonial-author">
                     <img src="assets/images/customer-2.jpg" alt="Robert Davis">
                     <div>
-                        <h4>Robert Davis</h4>
-                        <span>Elementary School Teacher</span>
+                        <h4>Encik Rahman</h4>
+                        <span>Primary School Teacher, JB</span>
                     </div>
                 </div>
             </div>
             
             <div class="testimonial-card">
                 <div class="testimonial-content">
-                    <p>"Fast shipping, great prices, and amazing selection. We've been shopping here for years and never been disappointed!"</p>
+                    <p>"Fast shipping across Malaysia, great prices, and amazing selection. We've been shopping here for years and never been disappointed! Perfect for Hari Raya gifts!"</p>
                 </div>
                 <div class="testimonial-author">
                     <img src="assets/images/customer-3.jpg" alt="Maria Garcia">
                     <div>
-                        <h4>Maria Garcia</h4>
-                        <span>Verified Customer</span>
+                        <h4>Siti Aishah</h4>
+                        <span>Verified Customer, Penang</span>
                     </div>
                 </div>
             </div>

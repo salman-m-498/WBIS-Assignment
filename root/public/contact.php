@@ -10,7 +10,7 @@ $breadcrumb_items = [
 ];
 
 // Include header
-include 'includes/header.php';
+include "../includes/header.php";
 ?>
 
 <!-- Contact Hero Section -->
@@ -18,7 +18,7 @@ include 'includes/header.php';
     <div class="container">
         <div class="contact-hero-content">
             <h1>Contact Us</h1>
-            <p>We're here to help with all your toy shopping needs</p>
+            <p>We're here to help with all your toy shopping needs across Malaysia</p>
         </div>
     </div>
 </section>
@@ -112,9 +112,9 @@ include 'includes/header.php';
                         </div>
                         <div class="method-content">
                             <h3>Phone Support</h3>
-                            <p><strong>Main:</strong> (555) 123-4567</p>
-                            <p><strong>Toll Free:</strong> 1-800-TOYLAND</p>
-                            <p><strong>Hours:</strong> Mon-Fri 8AM-8PM EST</p>
+                            <p><strong>Main:</strong> +60 3-2123 4567</p>
+                            <p><strong>Toll Free:</strong> 1-300-TOYLAND</p>
+                            <p><strong>Hours:</strong> Mon-Fri 9AM-6PM MYT</p>
                         </div>
                     </div>
                     
@@ -124,8 +124,8 @@ include 'includes/header.php';
                         </div>
                         <div class="method-content">
                             <h3>Email Support</h3>
-                            <p><strong>General:</strong> info@toylandstore.com</p>
-                            <p><strong>Support:</strong> support@toylandstore.com</p>
+                            <p><strong>General:</strong> info@toylandstore.com.my</p>
+                            <p><strong>Support:</strong> support@toylandstore.com.my</p>
                             <p><strong>Response:</strong> Within 24 hours</p>
                         </div>
                     </div>
@@ -148,10 +148,10 @@ include 'includes/header.php';
                         </div>
                         <div class="method-content">
                             <h3>Visit Our Store</h3>
-                            <p>123 Toy Street<br>
-                            Playtown, PT 12345<br>
-                            United States</p>
-                            <p><strong>Hours:</strong> Mon-Sat 9AM-9PM</p>
+                            <p>Level 3, Pavilion Kuala Lumpur<br>
+                            168, Jalan Bukit Bintang<br>
+                            55100 Kuala Lumpur, Malaysia</p>
+                            <p><strong>Hours:</strong> Daily 10AM-10PM</p>
                         </div>
                     </div>
                 </div>
@@ -198,7 +198,7 @@ include 'includes/header.php';
                     <i class="fas fa-chevron-down"></i>
                 </div>
                 <div class="faq-answer">
-                    <p>We offer several shipping options: Standard (3-5 business days), Express (1-2 business days), and Overnight. Free shipping is available on orders over $50.</p>
+                    <p>We offer several shipping options across Malaysia: Standard (2-3 business days), Express (1-2 business days), and Same Day Delivery (Klang Valley only). Free shipping is available on orders over RM150.</p>
                 </div>
             </div>
             
@@ -228,7 +228,7 @@ include 'includes/header.php';
                     <i class="fas fa-chevron-down"></i>
                 </div>
                 <div class="faq-answer">
-                    <p>Currently, we ship to the United States, Canada, and select European countries. International shipping rates and delivery times vary by location.</p>
+                    <p>Currently, we ship throughout Malaysia and to Singapore, Brunei, and Thailand. We're expanding our international shipping to more Southeast Asian countries soon. Shipping rates and delivery times vary by location.</p>
                 </div>
             </div>
             
@@ -248,7 +248,7 @@ include 'includes/header.php';
                     <i class="fas fa-chevron-down"></i>
                 </div>
                 <div class="faq-answer">
-                    <p>Yes! We offer beautiful gift wrapping for an additional $3.99 per item. You can select this option during checkout.</p>
+                    <p>Yes! We offer beautiful gift wrapping for an additional RM12 per item. You can select this option during checkout. Perfect for birthdays, festivals, and special occasions!</p>
                 </div>
             </div>
         </div>
@@ -271,7 +271,7 @@ include 'includes/header.php';
                 <div class="map-placeholder">
                     <i class="fas fa-map"></i>
                     <p>Interactive Map Coming Soon</p>
-                    <p>123 Toy Street, Playtown, PT 12345</p>
+                    <p>Level 3, Pavilion Kuala Lumpur, 168 Jalan Bukit Bintang, 55100 KL</p>
                 </div>
             </div>
             
@@ -279,20 +279,19 @@ include 'includes/header.php';
                 <div class="info-item">
                     <h4>Store Hours</h4>
                     <ul>
-                        <li>Monday - Friday: 9:00 AM - 9:00 PM</li>
-                        <li>Saturday: 9:00 AM - 9:00 PM</li>
-                        <li>Sunday: 10:00 AM - 7:00 PM</li>
+                        <li>Monday - Sunday: 10:00 AM - 10:00 PM</li>
+                        <li>Public Holidays: 10:00 AM - 8:00 PM</li>
                     </ul>
                 </div>
                 
                 <div class="info-item">
                     <h4>Parking</h4>
-                    <p>Free parking available in our lot</p>
+                    <p>Ample parking available at Pavilion KL</p>
                 </div>
                 
                 <div class="info-item">
                     <h4>Accessibility</h4>
-                    <p>Our store is fully accessible with ramps and wide aisles</p>
+                    <p>Our store is fully accessible with lifts and wide aisles</p>
                 </div>
             </div>
         </div>
@@ -307,21 +306,21 @@ include 'includes/header.php';
             <div class="hours-grid">
                 <div class="hours-item">
                     <h3>Phone Support</h3>
-                    <p><strong>Monday - Friday:</strong> 8:00 AM - 8:00 PM EST</p>
-                    <p><strong>Saturday:</strong> 9:00 AM - 6:00 PM EST</p>
-                    <p><strong>Sunday:</strong> 10:00 AM - 5:00 PM EST</p>
+                    <p><strong>Monday - Friday:</strong> 9:00 AM - 6:00 PM MYT</p>
+                    <p><strong>Saturday:</strong> 10:00 AM - 4:00 PM MYT</p>
+                    <p><strong>Sunday:</strong> Closed</p>
                 </div>
                 
                 <div class="hours-item">
                     <h3>Email Support</h3>
                     <p><strong>Response Time:</strong> Within 24 hours</p>
-                    <p><strong>Best Time:</strong> 9:00 AM - 5:00 PM EST</p>
+                    <p><strong>Best Time:</strong> 9:00 AM - 5:00 PM MYT</p>
                 </div>
                 
                 <div class="hours-item">
                     <h3>Live Chat</h3>
-                    <p><strong>Monday - Friday:</strong> 9:00 AM - 7:00 PM EST</p>
-                    <p><strong>Saturday:</strong> 10:00 AM - 5:00 PM EST</p>
+                    <p><strong>Monday - Friday:</strong> 9:00 AM - 6:00 PM MYT</p>
+                    <p><strong>Saturday:</strong> 10:00 AM - 4:00 PM MYT</p>
                 </div>
             </div>
         </div>
