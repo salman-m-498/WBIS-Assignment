@@ -10,7 +10,7 @@ $breadcrumb_items = [
 ];
 
 // Include header
-include 'includes/header.php';
+include '../includes/header.php';
 ?>
 
 <!-- Cart Section -->
@@ -37,7 +37,7 @@ include 'includes/header.php';
                     <div class="cart-item" data-product-id="1">
                         <div class="item-product">
                             <div class="item-image">
-                                <img src="assets/images/product-1.jpg" alt="Super Robot Action Figure">
+                                <img src="../assets/images/ironman_mark85_1.png" alt="Super Robot Action Figure">
                             </div>
                             <div class="item-details">
                                 <h3><a href="product.php?id=1">Super Robot Action Figure</a></h3>
@@ -49,8 +49,8 @@ include 'includes/header.php';
                         </div>
                         
                         <div class="item-price">
-                            <span class="current-price">$24.99</span>
-                            <span class="original-price">$34.99</span>
+                            <span class="current-price">MYR44.99</span>
+                            <span class="original-price">MYR94.99</span>
                         </div>
                         
                         <div class="item-quantity">
@@ -62,7 +62,7 @@ include 'includes/header.php';
                         </div>
                         
                         <div class="item-total">
-                            <span class="total-price">$49.98</span>
+                            <span class="total-price">MYR49.98</span>
                         </div>
                         
                         <div class="item-actions">
@@ -79,7 +79,7 @@ include 'includes/header.php';
                     <div class="cart-item" data-product-id="2">
                         <div class="item-product">
                             <div class="item-image">
-                                <img src="assets/images/product-2.jpg" alt="Educational Building Blocks">
+                                <img src="../assets/images/games_puzzles.png" alt="Educational Building Blocks">
                             </div>
                             <div class="item-details">
                                 <h3><a href="product.php?id=2">Educational Building Blocks</a></h3>
@@ -91,7 +91,7 @@ include 'includes/header.php';
                         </div>
                         
                         <div class="item-price">
-                            <span class="current-price">$39.99</span>
+                            <span class="current-price">MYR99.99</span>
                         </div>
                         
                         <div class="item-quantity">
@@ -103,7 +103,7 @@ include 'includes/header.php';
                         </div>
                         
                         <div class="item-total">
-                            <span class="total-price">$39.99</span>
+                            <span class="total-price">MYR139.99</span>
                         </div>
                         
                         <div class="item-actions">
@@ -120,7 +120,7 @@ include 'includes/header.php';
                     <div class="cart-item" data-product-id="3">
                         <div class="item-product">
                             <div class="item-image">
-                                <img src="assets/images/product-3.jpg" alt="Family Board Game">
+                                <img src="../assets/images/category-games-puzzles.jpg" alt="Family Board Game">
                             </div>
                             <div class="item-details">
                                 <h3><a href="product.php?id=3">Family Board Game</a></h3>
@@ -132,7 +132,7 @@ include 'includes/header.php';
                         </div>
                         
                         <div class="item-price">
-                            <span class="current-price">$29.99</span>
+                            <span class="current-price">MYR69.99</span>
                         </div>
                         
                         <div class="item-quantity">
@@ -144,7 +144,7 @@ include 'includes/header.php';
                         </div>
                         
                         <div class="item-total">
-                            <span class="total-price">$29.99</span>
+                            <span class="total-price">MYR229.99</span>
                         </div>
                         
                         <div class="item-actions">
@@ -199,22 +199,22 @@ include 'includes/header.php';
                 <div class="summary-content">
                     <div class="summary-row">
                         <span>Subtotal (4 items):</span>
-                        <span>$119.96</span>
+                        <span>MYR119.96</span>
                     </div>
                     
                     <div class="summary-row">
                         <span>Shipping:</span>
-                        <span class="shipping-cost">$5.99</span>
+                        <span class="shipping-cost">MYR5.99</span>
                     </div>
                     
                     <div class="summary-row discount">
                         <span>Discount:</span>
-                        <span>-$10.00</span>
+                        <span>-MYR10.00</span>
                     </div>
                     
                     <div class="summary-row total">
                         <span>Total:</span>
-                        <span>$115.95</span>
+                        <span>MYR115.95</span>
                     </div>
                 </div>
                 
@@ -261,7 +261,7 @@ include 'includes/header.php';
                     </div>
                     <div class="saved-item-details">
                         <h4><a href="product.php?id=4">Art & Craft Kit</a></h4>
-                        <p class="saved-item-price">$19.99</p>
+                        <p class="saved-item-price">MYR19.99</p>
                         <button class="btn btn-outline btn-small move-to-cart" data-product-id="4">
                             Move to Cart
                         </button>
@@ -278,7 +278,7 @@ include 'includes/header.php';
                     </div>
                     <div class="saved-item-details">
                         <h4><a href="product.php?id=5">Outdoor Play Set</a></h4>
-                        <p class="saved-item-price">$89.99</p>
+                        <p class="saved-item-price">MYR89.99</p>
                         <button class="btn btn-outline btn-small move-to-cart" data-product-id="5">
                             Move to Cart
                         </button>
@@ -314,7 +314,7 @@ include 'includes/header.php';
                             <span>(12 reviews)</span>
                         </div>
                         <div class="product-price">
-                            <span class="current-price">$14.99</span>
+                            <span class="current-price">MYR14.99</span>
                         </div>
                         <button class="add-to-cart" data-product-id="6">Add to Cart</button>
                     </div>
@@ -341,8 +341,8 @@ include 'includes/header.php';
                             <span>(28 reviews)</span>
                         </div>
                         <div class="product-price">
-                            <span class="current-price">$44.99</span>
-                            <span class="original-price">$59.99</span>
+                            <span class="current-price">MYR44.99</span>
+                            <span class="original-price">MYR59.99</span>
                         </div>
                         <button class="add-to-cart" data-product-id="7">Add to Cart</button>
                     </div>
@@ -368,7 +368,7 @@ include 'includes/header.php';
                             <span>(19 reviews)</span>
                         </div>
                         <div class="product-price">
-                            <span class="current-price">$16.99</span>
+                            <span class="current-price">MYR16.99</span>
                         </div>
                         <button class="add-to-cart" data-product-id="8">Add to Cart</button>
                     </div>
@@ -394,7 +394,7 @@ include 'includes/header.php';
                             <span>(16 reviews)</span>
                         </div>
                         <div class="product-price">
-                            <span class="current-price">$19.99</span>
+                            <span class="current-price">MYR19.99</span>
                         </div>
                         <button class="add-to-cart" data-product-id="9">Add to Cart</button>
                     </div>
