@@ -14,7 +14,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
     $delete_id = $_POST['delete_id'];
 
     try {
-      // Delete product images (files + db records)
+      //  1. Fetch the product to get the main image path
+        $stmt = $pdo->prepare("SELECT image FROM products WHERE product_id = ?");
+        $stmt->execute([$delete_id]);
+        $product = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        // 2. Delete main image file (skip placeholder)
+        if (!empty($product['image']) && strpos($product['image'], 'no-image.png') === false) {
+            $mainImagePath = __DIR__ . '/../' . $product['image'];
+            if (file_exists($mainImagePath)) {
+                unlink($mainImagePath);
+            }
+        }
+
+        // 3. Delete gallery images (files + DB records)
         $stmt = $pdo->prepare("SELECT image_path FROM product_images WHERE product_id = ?");
         $stmt->execute([$delete_id]);
         $images = $stmt->fetchAll(PDO::FETCH_COLUMN);
@@ -25,10 +38,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
                 unlink($filePath);
             }
         }
-
         $pdo->prepare("DELETE FROM product_images WHERE product_id = ?")->execute([$delete_id]);
 
-        // Delete product
+        // 4. Delete product record
         $pdo->prepare("DELETE FROM products WHERE product_id = ?")->execute([$delete_id]);
 
         $_SESSION['success'] = "Product deleted successfully!";
