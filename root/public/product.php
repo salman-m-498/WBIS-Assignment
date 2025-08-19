@@ -18,13 +18,13 @@ if (!$product) {
     exit;
 }
 
-// Get images
+// Main image comes from products table
+$main_image = $product['image'];
+
+// Gallery images come from product_images table
 $image_stmt = $pdo->prepare("SELECT image_path FROM product_images WHERE product_id = ?");
 $image_stmt->execute([$product_id]);
-$images = $image_stmt->fetchAll(PDO::FETCH_COLUMN);
-$main_image = $images[0];
-$thumbnail_images = array_slice($images, 1);
-
+$thumbnail_images = $image_stmt->fetchAll(PDO::FETCH_COLUMN);
 
 // Page variables
 $page_title = $product['name'];

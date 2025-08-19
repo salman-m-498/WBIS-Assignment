@@ -108,7 +108,7 @@ include 'includes/header.php';
         <div class="categories-grid">
             <div class="category-card">
                 <div class="category-image">
-                    <img src="assets/images/category-action-figures.jpg" alt="Action Figures">
+                    <img src="assets/images/categories/category-action-figures.jpg" alt="Action Figures">
                 </div>
                 <div class="category-content">
                     <h3>Action Figures</h3>
@@ -119,7 +119,7 @@ include 'includes/header.php';
             
             <div class="category-card">
                 <div class="category-image">
-                    <img src="assets/images/category-blind-boxes.jpg" alt="Blind Boxes">
+                    <img src="assets/images/categories/category-blind-boxes.jpg" alt="Blind Boxes">
                 </div>
                 <div class="category-content">
                     <h3>Blind Boxes</h3>
@@ -130,7 +130,7 @@ include 'includes/header.php';
             
             <div class="category-card">
                 <div class="category-image">
-                    <img src="assets/images/category-building-blocks-lego.jpg" alt="Building Blocks & LEGO">
+                    <img src="assets/images/categories/category-building-blocks-lego.jpg" alt="Building Blocks & LEGO">
                 </div>
                 <div class="category-content">
                     <h3>Building Blocks & LEGO</h3>
@@ -141,7 +141,7 @@ include 'includes/header.php';
             
             <div class="category-card">
                 <div class="category-image">
-                    <img src="assets/images/category-cars-trucks-trains.jpg" alt="Cars, Trucks & Trains">
+                    <img src="assets/images/categories/category-cars-trucks-trains.jpg" alt="Cars, Trucks & Trains">
                 </div>
                 <div class="category-content">
                     <h3>Cars, Trucks & Trains</h3>
@@ -152,7 +152,7 @@ include 'includes/header.php';
             
             <div class="category-card">
                 <div class="category-image">
-                    <img src="assets/images/category-games-puzzles.jpg" alt="Games & Puzzles">
+                    <img src="assets/images/categories/category-games-puzzles.jpg" alt="Games & Puzzles">
                 </div>
                 <div class="category-content">
                     <h3>Games & Puzzles</h3>
@@ -163,7 +163,7 @@ include 'includes/header.php';
             
             <div class="category-card">
                 <div class="category-image">
-                    <img src="assets/images/category-soft-toys.jpg" alt="Soft Toys">
+                    <img src="assets/images/categories/category-soft-toys.jpg" alt="Soft Toys">
                 </div>
                 <div class="category-content">
                     <h3>Soft Toys</h3>
@@ -271,7 +271,7 @@ include 'includes/header.php';
         </div>
 
         <div class="view-all-products">
-            <a href="products.php" class="btn btn-primary">View All Products</a>
+            <a href="public/products.php" class="btn btn-primary">View All Products</a>
         </div>
     </div>
 </section>
