@@ -106,71 +106,28 @@ include 'includes/header.php';
         </div>
         
         <div class="categories-grid">
-            <div class="category-card">
-                <div class="category-image">
-                    <img src="assets/images/categories/category-action-figures.jpg" alt="Action Figures">
+            <?php
+            // Fetch parent categories from DB
+            $stmt = $pdo->query("SELECT * FROM categories WHERE parent_id IS NULL AND status = 'active'");
+            $parent_categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            foreach ($parent_categories as $cat): 
+                // Remove "root/" if needed (like you did for products)
+                $image_path = str_replace("root/", "", $cat['image']);
+            ?>
+                <div class="category-card">
+                    <div class="category-image">
+                        <?php if (!empty($cat['image'])): ?>
+                            <img src="<?= htmlspecialchars($image_path) ?>" alt="<?= htmlspecialchars($cat['name']) ?>">
+                        <?php endif; ?>
+                    </div>
+                    <div class="category-content">
+                        <h3><?= htmlspecialchars($cat['name']) ?></h3>
+                        <p><?= htmlspecialchars($cat['description']) ?></p>
+                        <a href="public/subcategories.php?parent_id=<?= urlencode($cat['category_id']) ?>" class="btn btn-outline">Shop Now</a>
+                    </div>
                 </div>
-                <div class="category-content">
-                    <h3>Action Figures</h3>
-                    <p>Superheroes, characters, and collectibles</p>
-                    <a href="public/products.php?category=action-figures" class="btn btn-outline">Shop Now</a>
-                </div>
-            </div>
-            
-            <div class="category-card">
-                <div class="category-image">
-                    <img src="assets/images/categories/category-blind-boxes.jpg" alt="Blind Boxes">
-                </div>
-                <div class="category-content">
-                    <h3>Blind Boxes</h3>
-                    <p>Mystery collectibles and surprise toys</p>
-                    <a href="public/products.php?category=blind-boxes" class="btn btn-outline">Shop Now</a>
-                </div>
-            </div>
-            
-            <div class="category-card">
-                <div class="category-image">
-                    <img src="assets/images/categories/category-building-blocks-lego.jpg" alt="Building Blocks & LEGO">
-                </div>
-                <div class="category-content">
-                    <h3>Building Blocks & LEGO</h3>
-                    <p>Creative building and construction sets</p>
-                    <a href="public/products.php?category=building-blocks-lego" class="btn btn-outline">Shop Now</a>
-                </div>
-            </div>
-            
-            <div class="category-card">
-                <div class="category-image">
-                    <img src="assets/images/categories/category-cars-trucks-trains.jpg" alt="Cars, Trucks & Trains">
-                </div>
-                <div class="category-content">
-                    <h3>Cars, Trucks & Trains</h3>
-                    <p>Vehicles for racing and adventure</p>
-                    <a href="public/products.php?category=cars-trucks-trains" class="btn btn-outline">Shop Now</a>
-                </div>
-            </div>
-            
-            <div class="category-card">
-                <div class="category-image">
-                    <img src="assets/images/categories/category-games-puzzles.jpg" alt="Games & Puzzles">
-                </div>
-                <div class="category-content">
-                    <h3>Games & Puzzles</h3>
-                    <p>Brain teasers and family entertainment</p>
-                    <a href="public/products.php?category=games-puzzles" class="btn btn-outline">Shop Now</a>
-                </div>
-            </div>
-            
-            <div class="category-card">
-                <div class="category-image">
-                    <img src="assets/images/categories/category-soft-toys.jpg" alt="Soft Toys">
-                </div>
-                <div class="category-content">
-                    <h3>Soft Toys</h3>
-                    <p>Cuddly plush friends and companions</p>
-                    <a href="public/products.php?category=soft-toys" class="btn btn-outline">Shop Now</a>
-                </div>
-            </div>
+            <?php endforeach; ?>
         </div>
     </div>
 </section>

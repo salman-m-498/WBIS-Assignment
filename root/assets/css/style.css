@@ -823,6 +823,89 @@ a:hover {
     margin-bottom: 1rem;
 }
 
+/* ===== Subcategories (scoped) ===== */
+.subcategories-section {
+  padding: 2rem 0;
+}
+
+.subcategories-section .subcategories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1.25rem;
+}
+
+/* Card */
+.subcategories-section .subcategory-card {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 14px;
+  padding: 1rem;
+  text-align: center;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.subcategories-section .subcategory-card:hover,
+.subcategories-section .subcategory-card:focus-within {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+}
+
+/* Clickable area */
+.subcategories-section .subcategory-card > a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+  gap: 0.75rem;
+  outline: none;
+}
+
+/* Circular image wrapper to guarantee shape + size */
+.subcategories-section .subcategory-card .circle {
+  width: 140px;         /* control the circle size here */
+  height: 140px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: inline-block;
+  border: 3px solid #f2f2f2;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04);
+}
+
+/* Image: cover the circle perfectly */
+.subcategories-section .subcategory-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;        /* keeps faces/centers nicely cropped */
+  display: block;
+}
+
+/* Text */
+.subcategories-section h4 {
+  font-size: 1rem;
+  margin: 0.25rem 0 0.25rem;
+  line-height: 1.3;
+}
+
+.subcategories-section p {
+  font-size: 0.9rem;
+  color: #666;
+  margin: 0;
+}
+
+/* Focus states for accessibility */
+.subcategories-section .subcategory-card > a:focus-visible .circle {
+  box-shadow: 0 0 0 3px #dbeafe, 0 0 0 6px #93c5fd;
+}
+
+/* Subtle responsive tweak for smaller screens */
+@media (max-width: 420px) {
+  .subcategories-section .subcategory-card .circle {
+    width: 110px;
+    height: 110px;
+  }
+}
+
 /* Products Grid */
 .products-grid {
     display: grid;
