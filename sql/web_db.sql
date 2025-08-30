@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Aug 24, 2025 at 08:30 PM
+-- Generation Time: Aug 30, 2025 at 07:41 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -29,7 +29,6 @@ USE `web_db`;
 -- Table structure for table `categories`
 --
 
-DROP TABLE IF EXISTS `categories`;
 CREATE TABLE `categories` (
   `category_id` varchar(11) NOT NULL,
   `name` varchar(100) NOT NULL,
@@ -63,7 +62,27 @@ INSERT INTO `categories` (`category_id`, `name`, `description`, `image`, `parent
 ('SC006', 'LEGO', 'Classic interlocking brick sets for creative construction and learning.', 'assets/images/categories/lego.png', 'C002', 'active', '2025-08-05 18:22:07', '2025-08-18 16:57:44'),
 ('SC007', 'MEGA BLOCKS', 'Larger block toys great for younger builders with themed sets.', 'assets/images/categories/mega_blocks.png', 'C002', 'active', '2025-08-05 18:22:07', '2025-08-18 16:57:54'),
 ('SC008', 'Cars & Vehicles', 'Discover toy cars and vehicles that spark creativity and endless play.', 'assets/images/categories/cat_68a36b6d7ec940.27591070.png', 'C003', 'active', '2025-08-18 18:05:33', '2025-08-18 18:05:33'),
-('SC009', 'Radio & Remote Control Vehicles', 'Radio & Remote Control (R/C) Vehicles', 'assets/images/categories/cat_68a370f759de23.71487171.png', 'C003', 'active', '2025-08-18 18:29:11', '2025-08-18 18:29:11');
+('SC009', 'Radio & Remote Control Vehicles', 'Radio & Remote Control (R/C) Vehicles', 'assets/images/categories/cat_68a370f759de23.71487171.png', 'C003', 'active', '2025-08-18 18:29:11', '2025-08-18 18:29:11'),
+('SC010', 'Trains Sets', 'Classic train tracks and locomotives for kids to build, connect, and play with.', 'assets/images/categories/cat_68b33002a33bf8.41434876.jpg', 'C003', 'active', '2025-08-30 17:08:18', '2025-08-30 17:08:18'),
+('SC011', 'Baby Dolls', 'Soft, cuddly dolls designed for nurturing and role-play fun.', 'assets/images/categories/cat_68b3302d51ec20.79525169.png', 'C004', 'active', '2025-08-30 17:09:01', '2025-08-30 17:09:01'),
+('SC012', 'Fashion Dolls', 'Stylish dolls with trendy outfits and accessories for imaginative play.', 'assets/images/categories/cat_68b33055651930.55806902.png', 'C004', 'active', '2025-08-30 17:09:41', '2025-08-30 17:09:41'),
+('SC013', 'Doll Houses & Accessories', 'Miniature houses, furniture, and add-ons for doll play adventures.', 'assets/images/categories/cat_68b330773d2355.54821585.png', 'C004', 'active', '2025-08-30 17:10:15', '2025-08-30 17:10:15'),
+('SC014', 'Board Games', 'Family-friendly games for strategy, fun, and bonding time.', 'assets/images/categories/cat_68b330af818e98.47778490.jpg', 'C005', 'active', '2025-08-30 17:11:11', '2025-08-30 17:11:11'),
+('SC015', 'Card Games', 'Fast-paced collectible or traditional card games for all ages.', 'assets/images/categories/cat_68b330cf9d6147.54834206.jpg', 'C005', 'active', '2025-08-30 17:11:43', '2025-08-30 17:11:43'),
+('SC016', 'Puzzles', 'Challenging jigsaws and brain-teasers to spark problem-solving skills.', 'assets/images/categories/cat_68b330f39495a1.73496798.jpg', 'C005', 'active', '2025-08-30 17:12:19', '2025-08-30 17:12:19'),
+('SC017', 'Balls', 'Sports and play balls for indoor and outdoor activities.', 'assets/images/categories/cat_68b33115c85c04.04330977.jpg', 'C006', 'active', '2025-08-30 17:12:53', '2025-08-30 17:12:53'),
+('SC018', 'Bikes, Scooters & Ride-ons', 'Fun ride-on toys and wheels for active outdoor play.', 'assets/images/categories/cat_68b33135da8be1.56087920.png', 'C006', 'active', '2025-08-30 17:13:25', '2025-08-30 17:13:25'),
+('SC019', 'NERF & Blasters', 'Action blasters with soft darts for exciting battles and challenges.', 'assets/images/categories/cat_68b3315b8759f2.14334683.jpg', 'C006', 'active', '2025-08-30 17:14:03', '2025-08-30 17:14:03'),
+('SC020', 'Slides & Outdoor Play Centres', 'Outdoor sets with slides, swings, and climbing fun for kids.', 'assets/images/categories/cat_68b3317e2819e8.54337721.jpg', 'C006', 'active', '2025-08-30 17:14:38', '2025-08-30 17:14:38'),
+('SC021', 'Costumes & Dressups', 'Themed outfits and accessories for pretend play and parties.', 'assets/images/categories/cat_68b331991270a4.24522092.png', 'C007', 'active', '2025-08-30 17:15:05', '2025-08-30 17:15:05'),
+('SC022', 'Fashion Crafts & Jewellery', 'DIY kits to create stylish jewellery and craft designs.', 'assets/images/categories/cat_68b331c05210e0.02826859.jpg', 'C007', 'active', '2025-08-30 17:15:44', '2025-08-30 17:15:44'),
+('SC023', 'Food Sets & Tableware', 'Play kitchens, pretend food, and dining sets for role-play cooking fun.', 'assets/images/categories/cat_68b331d97d0804.27213638.png', 'C007', 'active', '2025-08-30 17:16:09', '2025-08-30 17:16:09'),
+('SC024', 'Teddy Bears', 'Classic plush bears, perfect for cuddles and gifts.', 'assets/images/categories/cat_68b331f67efaf5.83899638.jpg', 'C009', 'active', '2025-08-30 17:16:38', '2025-08-30 17:16:38'),
+('SC025', 'Stuffed Animals', 'Soft plush animals like cats, dogs, bunnies, and more.', 'assets/images/categories/cat_68b3320f4bd857.70451257.png', 'C009', 'active', '2025-08-30 17:17:03', '2025-08-30 17:17:03'),
+('SC026', 'Cartoon / Movie Characters', 'Plush and figures of popular TV, movie, and game characters.', 'assets/images/categories/cat_68b3322acddbd6.71453581.jpg', 'C009', 'active', '2025-08-30 17:17:30', '2025-08-30 17:17:30'),
+('SC027', 'Pop Mart', 'Trendy collectible blind boxes featuring creative characters and designs.', 'assets/images/categories/cat_68b33243d78d77.41940908.jpg', 'C008', 'active', '2025-08-30 17:17:55', '2025-08-30 17:17:55'),
+('SC028', 'Sanrio Characters', 'Cute collectibles of Hello Kitty, My Melody, Kuromi, and friends.', 'assets/images/categories/cat_68b3330a001089.38209441.png', 'C008', 'active', '2025-08-30 17:18:24', '2025-08-30 17:21:14'),
+('SC029', 'Anime / Comic Series', 'Figures and toys from popular anime, manga, and comic franchises.', 'assets/images/categories/cat_68b3327a1af782.44752948.jpg', 'C008', 'active', '2025-08-30 17:18:50', '2025-08-30 17:18:50');
 
 -- --------------------------------------------------------
 
@@ -71,7 +90,6 @@ INSERT INTO `categories` (`category_id`, `name`, `description`, `image`, `parent
 -- Table structure for table `orders`
 --
 
-DROP TABLE IF EXISTS `orders`;
 CREATE TABLE `orders` (
   `order_id` varchar(11) NOT NULL,
   `user_id` varchar(11) NOT NULL,
@@ -93,7 +111,6 @@ CREATE TABLE `orders` (
 -- Table structure for table `products`
 --
 
-DROP TABLE IF EXISTS `products`;
 CREATE TABLE `products` (
   `product_id` varchar(11) NOT NULL,
   `name` varchar(200) NOT NULL,
@@ -135,7 +152,6 @@ INSERT INTO `products` (`product_id`, `name`, `description`, `price`, `sale_pric
 -- Table structure for table `product_images`
 --
 
-DROP TABLE IF EXISTS `product_images`;
 CREATE TABLE `product_images` (
   `image_id` int(11) NOT NULL,
   `product_id` varchar(11) NOT NULL,
@@ -190,7 +206,6 @@ INSERT INTO `product_images` (`image_id`, `product_id`, `image_path`, `created_a
 -- Table structure for table `reviews`
 --
 
-DROP TABLE IF EXISTS `reviews`;
 CREATE TABLE `reviews` (
   `review_id` varchar(11) NOT NULL,
   `user_id` varchar(11) NOT NULL,
@@ -209,7 +224,6 @@ CREATE TABLE `reviews` (
 -- Table structure for table `user`
 --
 
-DROP TABLE IF EXISTS `user`;
 CREATE TABLE `user` (
   `user_id` varchar(11) NOT NULL,
   `username` varchar(50) NOT NULL,
@@ -238,7 +252,6 @@ INSERT INTO `user` (`user_id`, `username`, `email`, `password`, `role`, `profile
 -- Table structure for table `user_profiles`
 --
 
-DROP TABLE IF EXISTS `user_profiles`;
 CREATE TABLE `user_profiles` (
   `profile_id` int(11) NOT NULL,
   `user_id` varchar(11) NOT NULL,
@@ -268,7 +281,6 @@ INSERT INTO `user_profiles` (`profile_id`, `user_id`, `first_name`, `last_name`,
 -- Table structure for table `wishlist`
 --
 
-DROP TABLE IF EXISTS `wishlist`;
 CREATE TABLE `wishlist` (
   `wishlist_id` varchar(11) NOT NULL,
   `user_id` varchar(11) NOT NULL,
