@@ -78,6 +78,17 @@ include '../includes/header.php';
                     <a href="categories.php" class="btn btn-primary">Manage Categories</a>
                 </div>
             </div>
+
+            <div class="dashboard-card">
+                <div class="card-icon">
+                    <i class="fas fa-tags"></i>
+                </div>
+                <div class="card-content">
+                    <h3>Product reviews</h3>
+                    <p>Approve product reviews</p>
+                    <a href="reviews.php" class="btn btn-primary">Manage Categories</a>
+                </div>
+            </div>
         </div>
         
         <div class="admin-info">

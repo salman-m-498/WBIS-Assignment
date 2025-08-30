@@ -1923,6 +1923,36 @@ a:hover {
     z-index: 2;
 }
 
+/* Form Textareas */
+.form-group textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 14px 15px;
+    border: 2px solid #fff3f6;
+    border-radius: 15px;
+    font-size: 1rem;
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 500;
+    line-height: 1.5;
+    background-color: #fff;
+    transition: all 0.3s ease;
+    resize: vertical; 
+    color: #333;
+}
+
+.form-group textarea:focus {
+    outline: none;
+    border-color: #f93c64;
+    box-shadow: 0 0 0 3px rgba(249, 60, 100, 0.1);
+    transform: translateY(-1px);
+    background-color: #fffefc;
+}
+
+.form-group textarea::placeholder {
+    color: #999;
+    font-style: italic;
+}
+
 /* Password Toggle */
 .password-toggle {
     position: absolute;

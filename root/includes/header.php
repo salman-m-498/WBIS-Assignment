@@ -66,7 +66,11 @@ $root_path = $is_subdirectory ? '../' : '';
                 <div class="header-actions">
                     <div class="user-account">
                         <?php if (isset($_SESSION['user_id'])): ?>
-                            <a href="<?php echo $root_path; ?>member/dashboard.php"><i class="fas fa-user"></i> My Account</a>
+                                <?php if ($_SESSION['role'] === 'admin'): ?> 
+                                    <a href="<?php echo $root_path; ?>admin/dashboard.php"><i class="fas fa-user"></i> My Account</a>
+                                <?php else: ?>
+                                    <a href="<?php echo $root_path; ?>member/dashboard.php"><i class="fas fa-user"></i> My Account</a>
+                                <?php endif; ?>
                             <a href="<?php echo $root_path; ?>public/logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a>
                         <?php else: ?>
                             <a href="<?php echo $root_path; ?>public/login.php"><i class="fas fa-sign-in-alt"></i> Login</a>

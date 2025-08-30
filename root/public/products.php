@@ -37,9 +37,23 @@ $brand = isset($_GET['brand']) ? $_GET['brand'] : '';
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $per_page = 12;
 
-// Include header
-include '../includes/header.php';
 ?>
+
+<!-- ✅ Flash message container -->
+    <div id="flash-message"
+         style="display:none;
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                min-width: 200px;
+                padding: 12px 18px;
+                border-radius: 8px;
+                font-size: 14px;
+                z-index: 9999;
+                box-shadow: 0 4px 8px #000;">
+    </div>
+
+<?php include '../includes/header.php'; ?>
 
 <!-- Page Header -->
 <section class="page-header" style="background: linear-gradient(to right, #fddde6, #fceabb); padding: 3em 0; border-radius: 0 0 50px 50px;">
@@ -57,22 +71,27 @@ include '../includes/header.php';
                 <div class="products-header">
                     <h2>All Products</h2>
                 </div>
-
                 <div class="products-grid">
                     <?php foreach ($products as $product): ?>
                         <?php
                             $image_path = str_replace("root/", "", $product['image']);
                             $product_url = "product.php?id=" . urlencode($product['product_id']);
                         ?>
+
+                        <?php
+                        $inWishlist = $pdo->prepare("SELECT COUNT(*) FROM wishlist WHERE user_id = ? AND product_id = ?");
+                        $inWishlist->execute([$_SESSION['user_id'], $product['product_id']]);
+                        $isIn = $inWishlist->fetchColumn() > 0;
+                        ?>
+
                         <div class="product-card">
                             <div class="product-image">
                                 <a href="<?= $product_url ?>">
                                     <img src="/<?= htmlspecialchars($image_path) ?>" alt="<?= htmlspecialchars($product['name']) ?>">
                                 </a>
-
                                <div class="product-overlay">
                                  <button class="quick-view" data-product-id="<?= $product['product_id'] ?>">Quick View</button>
-                                 <button class="add-to-wishlist" data-product-id="<?= $product['product_id'] ?>"><i class="far fa-heart"></i></button>
+                                 <button class="add-to-wishlist <?= $isIn ? 'in-wishlist' : '' ?>" data-product-id="<?= $product['product_id'] ?>"><i class="<?= $isIn ? 'fas fa-heart' : 'far fa-heart' ?>"></i></button>
                                 </div>
                                <?php if ($product['sale_price'] < $product['price']): ?>
                                   <div class="product-badge sale">Sale</div>
@@ -89,14 +108,12 @@ include '../includes/header.php';
                             </div>
                             <button class="add-to-cart" data-product-id="<?= $product['product_id'] ?>">Add to Cart</button>
                         </div>
-                </div>
+                    </div>
                     <?php endforeach; ?>
                 </div>
             </main>
         </div>
-    </div>
-
-
+        <div>
             <!-- Sidebar Filters -->
             <aside class="products-sidebar">
                 <div class="filter-section">
@@ -278,6 +295,59 @@ include '../includes/header.php';
         </div>
     </div>
 </div>
+
+<!-- Adding to wishlist button -->
+<script>
+function showFlashMessage(message, type = 'success') {
+    const flash = document.getElementById('flash-message');
+    flash.textContent = message;
+    flash.style.display = 'block';
+    flash.style.backgroundColor = (type === 'success') ? '#d4edda' : '#f8d7da';
+    flash.style.color = (type === 'success') ? '#155724' : '#721c24';
+    flash.style.border = (type === 'success') ? '1px solid #c3e6cb' : '1px solid #f5c6cb';
+
+    setTimeout(() => {
+        flash.style.display = 'none';
+    }, 3000); // Not working for remove for some reason
+}
+// Wishlist flash
+document.addEventListener('DOMContentLoaded', () => {
+    const wishlistButtons = document.querySelectorAll('.add-to-wishlist');
+
+    wishlistButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const productId = button.dataset.productId;
+
+            fetch('/member/toggle-wishlist.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `product_id=${productId}`
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.action === 'added') {
+                        button.innerHTML = '<i class="fas fa-heart"></i>';
+                        button.classList.add('in-wishlist');
+                        showFlashMessage('Added to wishlist!', 'success');
+                    } else if (data.action === 'removed') {
+                        button.innerHTML = '<i class="far fa-heart"></i>';
+                        button.classList.remove('in-wishlist');
+                        showFlashMessage('Removed from wishlist', 'error');
+                    }
+                } else {
+                    showFlashMessage(data.message || 'Something went wrong', 'error');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                showFlashMessage('Unexpected error', 'error');
+            });
+        });
+    });
+});
+</script>
+
 
 <?php
 // Include footer

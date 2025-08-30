@@ -1,5 +1,7 @@
-  <?php
+<?php
 session_start();
+
+require_once '../includes/db.php';
 
 // Get product ID
 $product_id = isset($_GET['id']) ? $_GET['id'] : '';
@@ -31,6 +33,77 @@ $page_title = $product['name'];
 $page_description = $product['description'];
 $show_breadcrumb = true;
 $breadcrumb_items = [['url' => 'products.php', 'title' => 'Products']];
+
+
+
+// // Writing review section 
+// // Make sure user is logged in
+// if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['user_id'])) {
+//     $user_id = $_SESSION['user_id'];
+//     $rating  = $_POST['rating'] ?? null;
+//     $title   = $_POST['title'] ?? null;
+//     $comment = $_POST['content'] ?? null;
+
+//     if ($rating && $title && $comment) {
+//         $review_id = uniqid("REV"); // generate id, e.g. REV64f29d...
+        
+//         $sql = "INSERT INTO reviews (review_id, user_id, product_id, rating, title, comment, status)
+//                 VALUES (:review_id, :user_id, :product_id, :rating, :title, :comment, 'pending')";
+
+//         $stmt = $pdo->prepare($sql);
+//         $stmt->execute([
+//             ':review_id'  => $review_id,
+//             ':user_id'    => $user_id,
+//             ':product_id' => $product_id,
+//             ':rating'     => $rating,
+//             ':title'      => $title,
+//             ':comment'    => $comment
+//         ]);
+//     }
+//     header("Location: product.php?id=$product_id");
+//     exit;
+// }
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['user_id'])) {
+    $user_id = $_SESSION['user_id'];
+    $rating  = $_POST['rating'] ?? null;
+    $title   = $_POST['title'] ?? null;
+    $comment = $_POST['content'] ?? null;
+
+    if ($rating && $title && $comment) {
+        // Get last review_id
+        $sql = "SELECT review_id FROM reviews ORDER BY review_id DESC LIMIT 1";
+        $stmt = $pdo->query($sql);
+        $lastId = $stmt->fetchColumn();
+
+        if ($lastId) {
+            // Extract the numeric part and increment
+            $num = (int)substr($lastId, 2);
+            $num++;
+        } else {
+            $num = 1;
+        }
+
+        $review_id = 'UR' . str_pad($num, 9, '0', STR_PAD_LEFT);
+        $sql = "INSERT INTO reviews (review_id, user_id, product_id, rating, title, comment, status)
+                VALUES (:review_id, :user_id, :product_id, :rating, :title, :comment, 'pending')";
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([
+            ':review_id'  => $review_id,
+            ':user_id'    => $user_id,
+            ':product_id' => $product_id,
+            ':rating'     => $rating,
+            ':title'      => $title,
+            ':comment'    => $comment
+        ]);
+    }
+
+    header("Location: product.php?id=$product_id");
+    exit;
+}
+
+
 
 // Include header
 include '../includes/header.php';
@@ -299,33 +372,48 @@ include '../includes/header.php';
                             </div>
                         </div>
                         
-                        <div class="write-review-section">
-                            <h4>Write a Review</h4>
-                            <form class="review-form">
-                                <div class="rating-input">
-                                    <label>Your Rating:</label>
-                                    <div class="star-rating">
-                                        <input type="radio" name="rating" value="5" id="star5">
-                                        <label for="star5"><i class="far fa-star"></i></label>
-                                        <input type="radio" name="rating" value="4" id="star4">
-                                        <label for="star4"><i class="far fa-star"></i></label>
-                                        <input type="radio" name="rating" value="3" id="star3">
-                                        <label for="star3"><i class="far fa-star"></i></label>
-                                        <input type="radio" name="rating" value="2" id="star2">
-                                        <label for="star2"><i class="far fa-star"></i></label>
-                                        <input type="radio" name="rating" value="1" id="star1">
-                                        <label for="star1"><i class="far fa-star"></i></label>
+                        <!-- Writing review section -->
+                        <div class="write-review-section" style="max-width:700px; margin:20px auto; padding:20px; border:1px solid #ddd; border-radius:10px; background:#f9f9f9;">
+                            <h4 style="margin-bottom:15px;">Write a Review</h4>
+                            <form class="review-form" method="POST" action="product.php?id=<?php echo $product_id; ?>">
+                                
+                                <!-- Rating -->
+                                <div class="rating-input" style="margin-bottom:15px;">
+                                    <label style="display:block; margin-bottom:8px;">Your Rating:</label>
+
+                                    <input type="radio" name="rating" value="5" id="star5" style="position:absolute; left:-9999px;">
+                                    <input type="radio" name="rating" value="4" id="star4" style="position:absolute; left:-9999px;">
+                                    <input type="radio" name="rating" value="3" id="star3" style="position:absolute; left:-9999px;">
+                                    <input type="radio" name="rating" value="2" id="star2" style="position:absolute; left:-9999px;">
+                                    <input type="radio" name="rating" value="1" id="star1" style="position:absolute; left:-9999px;">
+
+                                    <div class="star-rating" style="display:flex; flex-direction:row-reverse; gap:8px; justify-content:flex-start;">
+                                        <label for="star5" style="cursor:pointer; font-size:28px; color:#ccc;" onclick="setStars(5)">★</label>
+                                        <label for="star4" style="cursor:pointer; font-size:28px; color:#ccc;" onclick="setStars(4)">★</label>
+                                        <label for="star3" style="cursor:pointer; font-size:28px; color:#ccc;" onclick="setStars(3)">★</label>
+                                        <label for="star2" style="cursor:pointer; font-size:28px; color:#ccc;" onclick="setStars(2)">★</label>
+                                        <label for="star1" style="cursor:pointer; font-size:28px; color:#ccc;" onclick="setStars(1)">★</label>
                                     </div>
                                 </div>
-                                <div class="form-group">
-                                    <label for="review-title">Review Title:</label>
-                                    <input type="text" id="review-title" name="title" required>
+
+                                <!-- Title -->
+                                <div class="form-group" style="margin-bottom:15px;">
+                                    <label for="review-title" style="display:block; margin-bottom:5px;">Review Title:</label>
+                                    <input type="text" id="review-title" name="title" required
+                                        style="width:100%; padding:10px; border:1px solid #ccc; border-radius:5px; font-size:15px;">
                                 </div>
-                                <div class="form-group">
-                                    <label for="review-content">Your Review:</label>
-                                    <textarea id="review-content" name="content" rows="5" required></textarea>
+
+                                <!-- Review Content -->
+                                <div class="form-group" style="margin-bottom:15px;">
+                                    <label for="review-content" style="display:block; margin-bottom:5px;">Your Review:</label>
+                                    <textarea id="review-content" name="content" rows="8" required
+                                            style="width:100%; padding:12px; border:1px solid #ccc; border-radius:5px; font-size:15px; resize:vertical;"></textarea>
                                 </div>
-                                <button type="submit" class="btn btn-primary">Submit Review</button>
+
+                                <button type="submit" class="btn btn-primary"
+                                        style="background:#007bff; color:#fff; padding:10px 20px; border:none; border-radius:5px; cursor:pointer; font-size:15px;">
+                                    Submit Review
+                                </button>
                             </form>
                         </div>
                     </div>
@@ -482,6 +570,16 @@ include '../includes/header.php';
 
 <script>
 // Enhanced Product Page JavaScript
+
+// For review rating stars
+function setStars(rating) {
+    let stars = document.querySelectorAll(".star-rating label");
+    stars.forEach((star, i) => {
+        star.style.color = (stars.length - i) <= rating ? "#FFD700" : "#ccc";
+    });
+    document.getElementById("star" + rating).checked = true;
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Image Viewer Functionality
     const mainImage = document.getElementById('main-product-image');
