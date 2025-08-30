@@ -79,9 +79,12 @@ $per_page = 12;
                         ?>
 
                         <?php
+                        $isIn = false;
+                        if (isset($_SESSION['user_id'])) {
                         $inWishlist = $pdo->prepare("SELECT COUNT(*) FROM wishlist WHERE user_id = ? AND product_id = ?");
                         $inWishlist->execute([$_SESSION['user_id'], $product['product_id']]);
                         $isIn = $inWishlist->fetchColumn() > 0;
+                        }
                         ?>
 
                         <div class="product-card">
