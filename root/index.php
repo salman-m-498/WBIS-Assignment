@@ -345,6 +345,8 @@ include 'includes/header.php';
     </div>
 </section>
 
+<script src="/assets/js/cart.js"></script>
+
 <?php
 // Include footer
 include 'includes/footer.php';

@@ -1,12 +1,9 @@
 <?php
-
-// ryan_lim member email and role always missing for unknown reason
-
 session_start();
 require_once '../includes/db.php';
 require_once '../includes/functions.php';
 
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+if (!isset($_SESSION['admin_id']) || $_SESSION['admin_role'] !== 'admin') {
     header('Location: admin_login.php');
     exit();
 }
@@ -29,7 +26,6 @@ $params = [];
 
 // Filter
 if ($toggleRole == '1') {
-
     if ($search) {
         $where = "WHERE role = 'admin' AND (username LIKE :search OR email LIKE :search OR user_id LIKE :search)";
         $params[':search'] = "%$search%";
@@ -44,37 +40,25 @@ if ($toggleRole == '1') {
 }
 
 switch ($sort) {
-    case 'oldest':
-        $orderBy = "created_at ASC";
-        break;
-    case 'username_asc':
-        $orderBy = "username ASC";
-        break;
-    case 'username_desc':
-        $orderBy = "username DESC";
-        break;
-    default:
-        $orderBy = "created_at DESC";
-        break;
+    case 'oldest': $orderBy = "created_at ASC"; break;
+    case 'username_asc': $orderBy = "username ASC"; break;
+    case 'username_desc': $orderBy = "username DESC"; break;
+    default: $orderBy = "created_at DESC"; break;
 }
 
-// Final query with LIMIT & OFFSET
 $sql = "SELECT * FROM user $where ORDER BY $orderBy LIMIT :limit OFFSET :offset";
 $stm = $pdo->prepare($sql);
 
-// Bind search 
 foreach ($params as $key => $val) {
     $stm->bindValue($key, $val, PDO::PARAM_STR);
 }
 
-// Bind pagination
 $stm->bindValue(':limit', $limit, PDO::PARAM_INT);
 $stm->bindValue(':offset', $offset, PDO::PARAM_INT);
 
 $stm->execute();
 $users = $stm->fetchAll(PDO::FETCH_ASSOC);
 
-// Count total rows for pagination
 $countSql = "SELECT COUNT(*) FROM user $where";
 $countStm = $pdo->prepare($countSql);
 $countStm->execute($params);
@@ -84,11 +68,11 @@ $totalPages = ceil($totalUsers / $limit);
 include '../includes/header.php';
 ?>
 
+
 <div class="container">
-    <div class="filters" style="margin-bottom:20px; display:flex; gap:10px;">
-        <form method="get" action="members.php" style="flex:1; display:flex; gap:10px; align-items:center;">
-            <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" 
-                placeholder="Search" style="flex:1; padding:5px;">
+    <div class="filters">
+        <form method="get" action="members.php" class="filter-form">
+            <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" placeholder="Search users...">
             
             <select name="sort" onchange="this.form.submit()">
                 <option value="newest" <?= $sort=='newest'?'selected':'' ?>>Newest First</option>
@@ -97,7 +81,7 @@ include '../includes/header.php';
                 <option value="username_desc" <?= $sort=='username_desc'?'selected':'' ?>>Z - A</option>
             </select>
 
-            <label style="margin-left:10px;">
+            <label class="checkbox-inline">
                 <input type="checkbox" name="toggleRole" value="1" <?= ($toggleRole == '1') ? 'checked' : '' ?> onchange="this.form.submit()">
                 Admin only
             </label>
@@ -107,33 +91,49 @@ include '../includes/header.php';
     </div>
 </div>
 
-<body class="member list">
+<body class="member-list">
     <div class="container">
-        <small style="solid #000000ff;">Users selected: <?= $totalUsers ?>.</small>
-        <table class="table table-hover table-bordered">
+        <small class="user-count">Users found: <?= $totalUsers ?>.</small>
+        <table class="user-table">
             <thead>
                 <tr>
-                    <th style="border:1px solid black; width:120px; height:40px; text-align:center;">User ID</th>
-                    <th style="border:1px solid black; width:120px; height:40px; text-align:center;">Username</th>
-                    <th style="border:1px solid black; width:120px; height:40px; text-align:center;">Email</th>
-                    <th style="border:1px solid black; width:120px; height:40px; text-align:center;">Role</th>
-                    <th style="border:1px solid black; width:120px; height:40px; text-align:center;">Date Created</th>
+                    <th>User ID</th>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Date Created</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 <?php foreach ($users as $u): ?>
-                    <tr onclick="window.location='member_profile.php?id=<?= urlencode($u['user_id']) ?>'" style="cursor:pointer;">
-                        <td style="border:1px solid black; width:120px; height:40px; text-align:center;"><?= htmlspecialchars($u['user_id']) ?></td>
-                        <td style="border:1px solid black; width:350px; height:40px; text-align:center;"><?= htmlspecialchars($u['username']) ?></td>
-                        <td style="border:1px solid black; width:350px; height:40px; text-align:center;"><?= htmlspecialchars($u['email']) ?></td>
-                        <td style="border:1px solid black; width:100px; height:40px; text-align:center;"><?= htmlspecialchars($u['role']) ?></td>
-                        <td style="border:1px solid black; width:200px; height:40px; text-align:center;"><?= htmlspecialchars($u['created_at']) ?></td>
+                    <tr>
+                        <td><?= htmlspecialchars($u['user_id']) ?></td>
+                        <td><?= htmlspecialchars($u['username']) ?></td>
+                        <td><?= htmlspecialchars($u['email']) ?></td>
+                        <td><?= htmlspecialchars($u['role']) ?></td>
+                        <td><?= htmlspecialchars($u['created_at']) ?></td>
+                        <td class="actions">
+                            <a href="member_profile.php?id=<?= urlencode($u['user_id']) ?>" class="btn btn-info">Profile</a>
+                            <a href="member_edit.php?id=<?= urlencode($u['user_id']) ?>" class="btn btn-warning">Edit</a>
+                            <a href="member_orders.php?id=<?= urlencode($u['user_id']) ?>" class="btn btn-secondary">Orders</a>
+
+                            <?php if ($u['status'] === 'blocked'): ?>
+                                <a href="member_action.php?action=unblock&id=<?= urlencode($u['user_id']) ?>" 
+                                   class="btn btn-success"
+                                   onclick="return confirm('Unblock this user?')">Unblock</a>
+                            <?php else: ?>
+                                <a href="member_action.php?action=block&id=<?= urlencode($u['user_id']) ?>" 
+                                   class="btn btn-danger"
+                                   onclick="return confirm('Block this user?')">Block</a>
+                            <?php endif; ?>
+                        </td>
                     </tr>
                 <?php endforeach; ?>
 
                 <?php if (empty($users)): ?>
                     <tr>
-                        <td colspan="5" style="border:1px solid black; padding:8px; text-align:center;">No user exist.</td>
+                        <td colspan="6" class="no-users">No users found.</td>
                     </tr>
                 <?php endif; ?>
             </tbody>
@@ -141,14 +141,14 @@ include '../includes/header.php';
     </div>
 
     <!-- Pagination -->
-    <div style="margin-top:20px; text-align:center;">
+    <div class="pagination">
         <?php if ($page > 1): ?>
             <a href="?search=<?= urlencode($search) ?>&sort=<?= $sort ?>&toggleRole=<?= $toggleRole ?>&page=<?= $page - 1 ?>">&laquo; Prev</a>
         <?php endif; ?>
 
         <?php for ($i = 1; $i <= $totalPages; $i++): ?>
             <a href="?search=<?= urlencode($search) ?>&sort=<?= $sort ?>&toggleRole=<?= $toggleRole ?>&page=<?= $i ?>" 
-               style="margin:0 5px; <?= $i==$page?'font-weight:bold;':'' ?>">
+               class="<?= $i==$page?'active':'' ?>">
                 <?= $i ?>
             </a>
         <?php endfor; ?>
@@ -158,12 +158,3 @@ include '../includes/header.php';
         <?php endif; ?>
     </div>
 </body>
-
-<div style="height:100px;"></div>
-
-
-
-
-
-
-

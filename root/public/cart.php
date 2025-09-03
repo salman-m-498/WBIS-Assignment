@@ -1,5 +1,57 @@
 <?php
 session_start();
+require_once '../includes/db.php';
+
+// Redirect if not logged in
+if (!isset($_SESSION['user_id'])) {
+    header('Location: login.php?redirect=cart.php');
+    exit;
+}
+
+$user_id = $_SESSION['user_id'];
+
+$search = $_GET['search'] ?? '';
+$params = [$user_id];
+
+$where = '';
+if ($search) {
+    $where = " AND (p.name LIKE ? OR p.sku LIKE ?)";
+    $params[] = "%$search%";
+    $params[] = "%$search%";
+}
+
+$stmt = $pdo->prepare("
+    SELECT c.*, p.name, p.sale_price, p.price, p.image, p.stock_quantity, p.sku 
+    FROM cart c 
+    JOIN products p ON c.product_id = p.product_id 
+    WHERE c.user_id = ? $where
+    ORDER BY c.created_at DESC
+");
+$stmt->execute($params);
+$cart_items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Get cart items
+$stmt = $pdo->prepare("
+    SELECT c.*, p.name, p.sale_price, p.price, p.image, p.stock_quantity, p.sku 
+    FROM cart c 
+    JOIN products p ON c.product_id = p.product_id 
+    WHERE c.user_id = ?
+    ORDER BY c.created_at DESC
+");
+$stmt->execute([$user_id]);
+$cart_items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Calculate totals
+$subtotal = 0;
+$total_items = 0;
+foreach ($cart_items as $item) {
+    $subtotal += $item['sale_price'] * $item['quantity'];
+    $total_items += $item['quantity'];
+}
+
+$shipping = $subtotal >= 150 ? 0 : 8.00;
+$discount = 0; // Will be calculated based on promo code
+$total = $subtotal + $shipping - $discount;
 
 // Page variables
 $page_title = "Shopping Cart";
@@ -9,9 +61,11 @@ $breadcrumb_items = [
     ['url' => 'cart.php', 'title' => 'Shopping Cart']
 ];
 
-// Include header
 include '../includes/header.php';
 ?>
+
+<!-- Flash message container -->
+<div id="flash-message" style="display:none; position: fixed; top: 20px; right: 20px; min-width: 200px; padding: 12px 18px; border-radius: 8px; font-size: 14px; z-index: 9999; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"></div>
 
 <!-- Cart Section -->
 <section class="cart-section">
@@ -20,10 +74,36 @@ include '../includes/header.php';
             <h1>Shopping Cart</h1>
             <p>Review your items and proceed to checkout</p>
         </div>
+
+        <!-- Search Form -->
+        <form method="get" action="cart.php" style="margin:20px 0; display:flex; gap:10px; max-width:400px;">
+            <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" 
+                    placeholder="Search cart items..." style="flex:1; padding:8px; border:1px solid #ccc; border-radius:4px;">
+            <button type="submit" class="btn btn-primary">Search</button>
+        </form>
+
         
+        <?php if (empty($cart_items)): ?>
+        <!-- Empty Cart -->
+        <div class="empty-cart">
+            <div class="empty-cart-content">
+                <i class="fas fa-shopping-cart"></i>
+                <h2>Your cart is empty</h2>
+                <p>Looks like you haven't added any items to your cart yet.</p>
+                <a href="products.php" class="btn btn-primary">Start Shopping</a>
+            </div>
+        </div>
+        <?php else: ?>
+        
+    <form method="post" action="checkout.php" id="checkout-form">
         <div class="cart-layout">
             <!-- Cart Items -->
             <div class="cart-items">
+                <div style="margin-bottom:10px;">
+                    <label>
+                        <input type="checkbox" id="select-all" checked> Select All
+                    </label>
+                </div>
                 <div class="cart-table-header">
                     <div class="header-product">Product</div>
                     <div class="header-price">Price</div>
@@ -33,139 +113,61 @@ include '../includes/header.php';
                 </div>
                 
                 <div class="cart-items-list" id="cart-items-container">
-                    <!-- Cart Item 1 -->
-                    <div class="cart-item" data-product-id="1">
-                        <div class="item-product">
-                            <div class="item-image">
-                                <img src="../assets/images/ironman_mark85_1.png" alt="Super Robot Action Figure">
-                            </div>
-                            <div class="item-details">
-                                <h3><a href="product.php?id=1">Super Robot Action Figure</a></h3>
-                                <p class="item-sku">SKU: ROB-001</p>
-                                <div class="item-options">
-                                    <span class="option">Color: Blue</span>
+                    <?php foreach ($cart_items as $item): ?>
+                        <?php $image_path = str_replace("root/", "", $item['image']); ?>
+                        <div class="cart-item" data-product-id="<?= $item['product_id'] ?>">
+                             <div class="item-select">
+                                <input type="checkbox" class="select-item" name="selected_items[]" value="<?= $item['product_id'] ?>" checked>
+                                </div>
+        
+                            <div class="item-product">
+                                <div class="item-image">
+                                    <img src="/<?= htmlspecialchars($image_path) ?>" alt="<?= htmlspecialchars($item['name']) ?>">
+                                </div>
+                                <div class="item-details">
+                                    <h3><a href="product.php?id=<?= $item['product_id'] ?>"><?= htmlspecialchars($item['name']) ?></a></h3>
+                                    <p class="item-sku">SKU: <?= htmlspecialchars($item['sku']) ?></p>
+                                    <p class="stock-info">Stock: <?= $item['stock_quantity'] ?> available</p>
                                 </div>
                             </div>
-                        </div>
-                        
-                        <div class="item-price">
-                            <span class="current-price">MYR44.99</span>
-                            <span class="original-price">MYR94.99</span>
-                        </div>
-                        
-                        <div class="item-quantity">
-                            <div class="quantity-selector">
-                                <button class="quantity-btn minus" data-product-id="1">-</button>
-                                <input type="number" class="quantity-input" value="2" min="1" max="10" data-product-id="1">
-                                <button class="quantity-btn plus" data-product-id="1">+</button>
+                            
+                            <div class="item-price">
+                                <span class="current-price">RM<?= number_format($item['sale_price'], 2) ?></span>
+                                <?php if ($item['sale_price'] < $item['price']): ?>
+                                    <span class="original-price">RM<?= number_format($item['price'], 2) ?></span>
+                                <?php endif; ?>
                             </div>
-                        </div>
-                        
-                        <div class="item-total">
-                            <span class="total-price">MYR49.98</span>
-                        </div>
-                        
-                        <div class="item-actions">
-                            <button class="remove-item" data-product-id="1">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                            <button class="save-for-later" data-product-id="1">
-                                <i class="far fa-heart"></i>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Cart Item 2 -->
-                    <div class="cart-item" data-product-id="2">
-                        <div class="item-product">
-                            <div class="item-image">
-                                <img src="../assets/images/games_puzzles.png" alt="Educational Building Blocks">
-                            </div>
-                            <div class="item-details">
-                                <h3><a href="product.php?id=2">Educational Building Blocks</a></h3>
-                                <p class="item-sku">SKU: BLK-002</p>
-                                <div class="item-options">
-                                    <span class="option">Size: Large Set</span>
+                            
+                            <div class="item-quantity">
+                                <div class="quantity-selector">
+                                    <button class="quantity-btn minus" data-product-id="<?= $item['product_id'] ?>">-</button>
+                                    <input type="number" class="quantity-input" value="<?= $item['quantity'] ?>" 
+                                           min="1" max="<?= $item['stock_quantity'] ?>" data-product-id="<?= $item['product_id'] ?>">
+                                    <button class="quantity-btn plus" data-product-id="<?= $item['product_id'] ?>">+</button>
                                 </div>
                             </div>
-                        </div>
-                        
-                        <div class="item-price">
-                            <span class="current-price">MYR99.99</span>
-                        </div>
-                        
-                        <div class="item-quantity">
-                            <div class="quantity-selector">
-                                <button class="quantity-btn minus" data-product-id="2">-</button>
-                                <input type="number" class="quantity-input" value="1" min="1" max="10" data-product-id="2">
-                                <button class="quantity-btn plus" data-product-id="2">+</button>
+                            
+                            <div class="item-total">
+                                <span class="total-price">RM<?= number_format($item['sale_price'] * $item['quantity'], 2) ?></span>
+                            </div>
+                            
+                            <div class="item-actions">
+                                <button class="remove-item" data-product-id="<?= $item['product_id'] ?>">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                <button class="save-for-later" data-product-id="<?= $item['product_id'] ?>">
+                                    <i class="far fa-heart"></i>
+                                </button>
                             </div>
                         </div>
-                        
-                        <div class="item-total">
-                            <span class="total-price">MYR139.99</span>
+                    <?php endforeach; ?>
+
+                     <?php if (empty($cart_items)): ?>
+                         <div style="padding:20px; text-align:center;">
+                            <p>No items found in your cart for "<?= htmlspecialchars($search) ?>".</p>
+                            <a href="cart.php" class="btn btn-outline">Reset Search</a>
                         </div>
-                        
-                        <div class="item-actions">
-                            <button class="remove-item" data-product-id="2">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                            <button class="save-for-later" data-product-id="2">
-                                <i class="far fa-heart"></i>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Cart Item 3 -->
-                    <div class="cart-item" data-product-id="3">
-                        <div class="item-product">
-                            <div class="item-image">
-                                <img src="../assets/images/category-games-puzzles.jpg" alt="Family Board Game">
-                            </div>
-                            <div class="item-details">
-                                <h3><a href="product.php?id=3">Family Board Game</a></h3>
-                                <p class="item-sku">SKU: GAM-003</p>
-                                <div class="item-options">
-                                    <span class="option">Edition: Deluxe</span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="item-price">
-                            <span class="current-price">MYR69.99</span>
-                        </div>
-                        
-                        <div class="item-quantity">
-                            <div class="quantity-selector">
-                                <button class="quantity-btn minus" data-product-id="3">-</button>
-                                <input type="number" class="quantity-input" value="1" min="1" max="10" data-product-id="3">
-                                <button class="quantity-btn plus" data-product-id="3">+</button>
-                            </div>
-                        </div>
-                        
-                        <div class="item-total">
-                            <span class="total-price">MYR229.99</span>
-                        </div>
-                        
-                        <div class="item-actions">
-                            <button class="remove-item" data-product-id="3">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                            <button class="save-for-later" data-product-id="3">
-                                <i class="far fa-heart"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Empty Cart Message -->
-                <div class="empty-cart" id="empty-cart" style="display: none;">
-                    <div class="empty-cart-content">
-                        <i class="fas fa-shopping-cart"></i>
-                        <h2>Your cart is empty</h2>
-                        <p>Looks like you haven't added any items to your cart yet.</p>
-                        <a href="products.php" class="btn btn-primary">Start Shopping</a>
-                    </div>
+                    <?php endif; ?>
                 </div>
                 
                 <!-- Cart Actions -->
@@ -174,17 +176,8 @@ include '../includes/header.php';
                         <a href="products.php" class="btn btn-outline">
                             <i class="fas fa-arrow-left"></i> Continue Shopping
                         </a>
-                        <button class="btn btn-outline" id="update-cart">
-                            <i class="fas fa-sync-alt"></i> Update Cart
-                        </button>
                         <button class="btn btn-outline" id="clear-cart">
                             <i class="fas fa-trash"></i> Clear Cart
-                        </button>
-                    </div>
-                    
-                    <div class="cart-actions-right">
-                        <button class="btn btn-outline" id="save-cart">
-                            <i class="far fa-heart"></i> Save for Later
                         </button>
                     </div>
                 </div>
@@ -198,23 +191,29 @@ include '../includes/header.php';
                 
                 <div class="summary-content">
                     <div class="summary-row">
-                        <span>Subtotal (4 items):</span>
-                        <span>MYR119.96</span>
+                        <span>Subtotal (<span id="selected-items-count"><?= $total_items ?></span> items):</span>
+                        <span id="subtotal">RM<?= number_format($subtotal, 2) ?></span>
                     </div>
                     
                     <div class="summary-row">
                         <span>Shipping:</span>
-                        <span class="shipping-cost">MYR5.99</span>
+                        <span class="shipping-cost" id="shipping-cost">
+                            <?php if ($shipping == 0): ?>
+                                <span style="color: green;">FREE</span>
+                            <?php else: ?>
+                                RM<?= number_format($shipping, 2) ?>
+                            <?php endif; ?>
+                        </span>
                     </div>
                     
-                    <div class="summary-row discount">
+                    <div class="summary-row discount" id="discount-row" style="<?= $discount > 0 ? '' : 'display:none;' ?>">
                         <span>Discount:</span>
-                        <span>-MYR10.00</span>
+                        <span id="discount-amount">-RM<?= number_format($discount, 2) ?></span>
                     </div>
                     
                     <div class="summary-row total">
-                        <span>Total:</span>
-                        <span>MYR115.95</span>
+                         <span>Total:</span>
+                         <span id="total-amount">RM<?= number_format($total, 2) ?></span>
                     </div>
                 </div>
                 
@@ -225,13 +224,14 @@ include '../includes/header.php';
                         <input type="text" placeholder="Enter promo code" id="promo-code">
                         <button type="button" class="btn btn-outline" id="apply-promo">Apply</button>
                     </div>
+                    <div id="promo-message" style="margin-top: 10px; font-size: 14px;"></div>
                 </div>
                 
                 <!-- Checkout Button -->
                 <div class="checkout-section">
-                    <button class="btn btn-primary btn-large" id="proceed-checkout">
+                <button type="submit" class="btn btn-primary btn-large">
                         <i class="fas fa-lock"></i> Proceed to Checkout
-                    </button>
+                </button>
                     <p class="secure-checkout">
                         <i class="fas fa-shield-alt"></i> Secure checkout powered by SSL
                     </p>
@@ -240,171 +240,381 @@ include '../includes/header.php';
                 <!-- Payment Methods -->
                 <div class="payment-methods">
                     <h4>We Accept:</h4>
-                    <div class="payment-icons">
-                        <i class="fab fa-cc-visa"></i>
-                        <i class="fab fa-cc-mastercard"></i>
-                        <i class="fab fa-cc-amex"></i>
-                        <i class="fab fa-cc-paypal"></i>
-                    </div>
+                   <div class="payment-icons">
+                        <img src="https://img.icons8.com/color/48/visa.png" alt="Visa">
+                        <img src="https://img.icons8.com/color/48/mastercard.png" alt="Mastercard">
+                        <img src="https://img.icons8.com/color/48/amex.png" alt="Amex">
+                         <img
+                            src="https://logowik.com/content/uploads/images/touchn-go-ewallet4107.logowik.com.webp"
+                            alt="Touch 'n Go eWallet"
+                        >
+                        </div>
                 </div>
             </div>
         </div>
-        
-        <!-- Saved Items -->
-        <div class="saved-items-section">
-            <h3>Saved for Later (2 items)</h3>
-            <div class="saved-items-grid">
-                <!-- Saved Item 1 -->
-                <div class="saved-item" data-product-id="4">
-                    <div class="saved-item-image">
-                        <img src="assets/images/product-4.jpg" alt="Art & Craft Kit">
-                    </div>
-                    <div class="saved-item-details">
-                        <h4><a href="product.php?id=4">Art & Craft Kit</a></h4>
-                        <p class="saved-item-price">MYR19.99</p>
-                        <button class="btn btn-outline btn-small move-to-cart" data-product-id="4">
-                            Move to Cart
-                        </button>
-                        <button class="btn btn-outline btn-small remove-saved" data-product-id="4">
-                            Remove
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- Saved Item 2 -->
-                <div class="saved-item" data-product-id="5">
-                    <div class="saved-item-image">
-                        <img src="assets/images/product-5.jpg" alt="Outdoor Play Set">
-                    </div>
-                    <div class="saved-item-details">
-                        <h4><a href="product.php?id=5">Outdoor Play Set</a></h4>
-                        <p class="saved-item-price">MYR89.99</p>
-                        <button class="btn btn-outline btn-small move-to-cart" data-product-id="5">
-                            Move to Cart
-                        </button>
-                        <button class="btn btn-outline btn-small remove-saved" data-product-id="5">
-                            Remove
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Recommended Products -->
-        <div class="recommended-products">
-            <h3>You Might Also Like</h3>
-            <div class="products-grid">
-                <!-- Recommended Product 1 -->
-                <div class="product-card">
-                    <div class="product-image">
-                        <img src="assets/images/product-6.jpg" alt="Baby Rattle Set">
-                        <div class="product-overlay">
-                            <button class="quick-view" data-product-id="6">Quick View</button>
-                            <button class="add-to-wishlist" data-product-id="6"><i class="far fa-heart"></i></button>
-                        </div>
-                    </div>
-                    <div class="product-content">
-                        <h3><a href="product.php?id=6">Baby Rattle Set</a></h3>
-                        <div class="product-rating">
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="far fa-star"></i>
-                            <span>(12 reviews)</span>
-                        </div>
-                        <div class="product-price">
-                            <span class="current-price">MYR14.99</span>
-                        </div>
-                        <button class="add-to-cart" data-product-id="6">Add to Cart</button>
-                    </div>
-                </div>
-                
-                <!-- Recommended Product 2 -->
-                <div class="product-card">
-                    <div class="product-image">
-                        <img src="assets/images/product-7.jpg" alt="Science Experiment Kit">
-                        <div class="product-overlay">
-                            <button class="quick-view" data-product-id="7">Quick View</button>
-                            <button class="add-to-wishlist" data-product-id="7"><i class="far fa-heart"></i></button>
-                        </div>
-                        <div class="product-badge sale">Sale</div>
-                    </div>
-                    <div class="product-content">
-                        <h3><a href="product.php?id=7">Science Experiment Kit</a></h3>
-                        <div class="product-rating">
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <span>(28 reviews)</span>
-                        </div>
-                        <div class="product-price">
-                            <span class="current-price">MYR44.99</span>
-                            <span class="original-price">MYR59.99</span>
-                        </div>
-                        <button class="add-to-cart" data-product-id="7">Add to Cart</button>
-                    </div>
-                </div>
-                
-                <!-- Recommended Product 3 -->
-                <div class="product-card">
-                    <div class="product-image">
-                        <img src="assets/images/product-8.jpg" alt="Puzzle Set">
-                        <div class="product-overlay">
-                            <button class="quick-view" data-product-id="8">Quick View</button>
-                            <button class="add-to-wishlist" data-product-id="8"><i class="far fa-heart"></i></button>
-                        </div>
-                    </div>
-                    <div class="product-content">
-                        <h3><a href="product.php?id=8">Puzzle Set</a></h3>
-                        <div class="product-rating">
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="far fa-star"></i>
-                            <span>(19 reviews)</span>
-                        </div>
-                        <div class="product-price">
-                            <span class="current-price">MYR16.99</span>
-                        </div>
-                        <button class="add-to-cart" data-product-id="8">Add to Cart</button>
-                    </div>
-                </div>
-                
-                <!-- Recommended Product 4 -->
-                <div class="product-card">
-                    <div class="product-image">
-                        <img src="assets/images/product-9.jpg" alt="Robot Companion Figure">
-                        <div class="product-overlay">
-                            <button class="quick-view" data-product-id="9">Quick View</button>
-                            <button class="add-to-wishlist" data-product-id="9"><i class="far fa-heart"></i></button>
-                        </div>
-                    </div>
-                    <div class="product-content">
-                        <h3><a href="product.php?id=9">Robot Companion Figure</a></h3>
-                        <div class="product-rating">
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="far fa-star"></i>
-                            <span>(16 reviews)</span>
-                        </div>
-                        <div class="product-price">
-                            <span class="current-price">MYR19.99</span>
-                        </div>
-                        <button class="add-to-cart" data-product-id="9">Add to Cart</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+        </form>
+        <?php endif; ?>
 </section>
 
-<?php
-// Include footer
-include 'includes/footer.php';
-?> 
+<script>
+// Cart Page JavaScript
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // Show flash message function
+    function showFlashMessage(message, type = 'success') {
+        const flash = document.getElementById('flash-message');
+        if (!flash) return;
+        
+        flash.textContent = message;
+        flash.style.display = 'block';
+        flash.style.backgroundColor = (type === 'success') ? '#d4edda' : '#f8d7da';
+        flash.style.color = (type === 'success') ? '#155724' : '#721c24';
+        flash.style.border = (type === 'success') ? '1px solid #c3e6cb' : '1px solid #f5c6cb';
+
+        setTimeout(() => {
+            flash.style.display = 'none';
+        }, 3000);
+    }
+    
+    // Make showFlashMessage available globally for cart.js
+    window.showFlashMessage = showFlashMessage;
+    
+    // Initialize: check all items and update totals on page load
+    function initializeCart() {
+        const selectAllCheckbox = document.getElementById('select-all');
+        const itemCheckboxes = document.querySelectorAll('.select-item');
+        
+        if (selectAllCheckbox && itemCheckboxes.length > 0) {
+            selectAllCheckbox.checked = true;
+            itemCheckboxes.forEach(cb => {
+                cb.checked = true;
+            });
+            updateCartTotals();
+        }
+    }
+    
+    // Update cart totals
+    function updateCartTotals() {
+        let subtotal = 0;
+        let selectedItems = 0;
+
+        const items = document.querySelectorAll('.cart-item');
+        
+        items.forEach(item => {
+            const checkbox = item.querySelector('.select-item');
+            if (checkbox && checkbox.checked) {
+                const priceElement = item.querySelector('.current-price');
+                const quantityElement = item.querySelector('.quantity-input');
+                
+                if (priceElement && quantityElement) {
+                    const price = parseFloat(priceElement.textContent.replace('RM', ''));
+                    const quantity = parseInt(quantityElement.value);
+                    const total = price * quantity;
+
+                    const totalElement = item.querySelector('.total-price');
+                    if (totalElement) {
+                        totalElement.textContent = 'RM' + total.toFixed(2);
+                    }
+                    
+                    subtotal += total;
+                    selectedItems += quantity;
+                }
+            }
+        });
+
+        // Update summary UI
+        const selectedCountElement = document.getElementById('selected-items-count');
+        const subtotalElement = document.getElementById('subtotal');
+        
+        if (selectedCountElement) selectedCountElement.textContent = selectedItems;
+        if (subtotalElement) subtotalElement.textContent = 'RM' + subtotal.toFixed(2);
+
+        // Shipping logic
+        let shipping = 0;
+        if (subtotal > 0) {
+            shipping = subtotal >= 150 ? 0 : 8.00;
+        }
+
+        const shippingElement = document.getElementById('shipping-cost');
+        if (shippingElement) {
+            if (shipping === 0 && subtotal > 0) {
+                shippingElement.innerHTML = '<span style="color: green;">FREE</span>';
+            } else {
+                shippingElement.textContent = 'RM' + shipping.toFixed(2);
+            }
+        }
+
+        // Discount logic
+        const discountElement = document.getElementById('discount-amount');
+        const discount = discountElement ? 
+            parseFloat(discountElement.textContent.replace('-RM', '') || 0) : 0;
+
+        const total = subtotal + shipping - discount;
+        const totalElement = document.getElementById('total-amount');
+        if (totalElement) {
+            totalElement.textContent = 'RM' + total.toFixed(2);
+        }
+        
+        // Update select all checkbox state
+        const allCheckboxes = document.querySelectorAll('.select-item');
+        const checkedCheckboxes = document.querySelectorAll('.select-item:checked');
+        const selectAllCheckbox = document.getElementById('select-all');
+        
+        if (selectAllCheckbox) {
+            if (checkedCheckboxes.length === 0) {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = false;
+            } else if (checkedCheckboxes.length === allCheckboxes.length) {
+                selectAllCheckbox.checked = true;
+                selectAllCheckbox.indeterminate = false;
+            } else {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = true;
+            }
+        }
+    }
+    
+    // Initialize cart on page load
+    initializeCart();
+    
+    // Event listeners for checkboxes
+    document.querySelectorAll('.select-item').forEach(cb => {
+        cb.addEventListener('change', updateCartTotals);
+    });
+
+    // Quantity change handlers
+    document.querySelectorAll('.quantity-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const productId = this.dataset.productId;
+            const input = document.querySelector(`input[data-product-id="${productId}"]`);
+            const isPlus = this.classList.contains('plus');
+            const currentVal = parseInt(input.value);
+            const max = parseInt(input.getAttribute('max'));
+            
+            let newVal = isPlus ? currentVal + 1 : currentVal - 1;
+            if (newVal < 1) newVal = 1;
+            if (newVal > max) newVal = max;
+            
+            input.value = newVal;
+            updateQuantity(productId, newVal);
+        });
+    });
+    
+    // Quantity input change
+    document.querySelectorAll('.quantity-input').forEach(input => {
+        input.addEventListener('change', function() {
+            const productId = this.dataset.productId;
+            const quantity = parseInt(this.value);
+            updateQuantity(productId, quantity);
+        });
+    });
+    
+    // Update quantity function
+    function updateQuantity(productId, quantity) {
+        fetch('../api/cart.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: `action=update&product_id=${productId}&quantity=${quantity}`
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                updateCartTotals();
+                showFlashMessage('Cart updated');
+
+                const cartCountEl = document.getElementById('cart-count') || document.querySelector('.cart-count');
+                if (cartCountEl && typeof data.cart_count !== 'undefined') {
+                    cartCountEl.textContent = data.cart_count;
+                }
+            } else {
+                showFlashMessage(data.message, 'error');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            showFlashMessage('Error updating cart', 'error');
+        });
+    }
+    
+    // Remove item handlers
+    document.querySelectorAll('.remove-item').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const productId = this.dataset.productId;
+            
+            if (confirm('Are you sure you want to remove this item?')) {
+                fetch('../api/cart.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: `action=remove&product_id=${productId}`
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        const itemElement = document.querySelector(`[data-product-id="${productId}"]`);
+                        if (itemElement) {
+                            itemElement.remove();
+                        }
+                        updateCartTotals();
+                        showFlashMessage('Item removed from cart');
+
+                    // ✅ Update cart icon count
+                    const cartCountEl = document.getElementById('cart-count') || document.querySelector('.cart-count');
+                    if (cartCountEl && typeof data.cart_count !== 'undefined') {
+                        cartCountEl.textContent = data.cart_count;
+                    }
+
+                    if (document.querySelectorAll('.cart-item').length === 0) {
+                        location.reload();
+                    }
+                    } else {
+                        showFlashMessage(data.message, 'error');
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    showFlashMessage('Error removing item', 'error');
+                });
+            }
+        });
+    });
+    
+    // Clear cart
+    document.getElementById('clear-cart')?.addEventListener('click', function(e) {
+        e.preventDefault();
+        if (confirm('Are you sure you want to clear your entire cart?')) {
+            fetch('../api/cart.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=clear'
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const cartCountEl = document.getElementById('cart-count') || document.querySelector('.cart-count');
+                    if (cartCountEl) {
+                        cartCountEl.textContent = 0;
+                    }
+
+                    location.reload();
+
+                } else {
+                    showFlashMessage(data.message, 'error');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                showFlashMessage('Error clearing cart', 'error');
+            });
+        }
+    });
+    
+    // Apply promo code
+    document.getElementById('apply-promo')?.addEventListener('click', function() {
+        const promoCode = document.getElementById('promo-code').value.trim();
+        if (!promoCode) {
+            showFlashMessage('Please enter a promo code', 'error');
+            return;
+        }
+        
+        // Simulate promo code validation (you can implement real validation)
+        const validCodes = {
+            'SAVE10': 10,
+            'WELCOME15': 15,
+            'NEWUSER20': 20
+        };
+        
+        if (validCodes[promoCode.toUpperCase()]) {
+            const discountAmount = validCodes[promoCode.toUpperCase()];
+            const discountRow = document.getElementById('discount-row');
+            const discountAmountElement = document.getElementById('discount-amount');
+            
+            if (discountRow) discountRow.style.display = 'flex';
+            if (discountAmountElement) discountAmountElement.textContent = '-RM' + discountAmount.toFixed(2);
+            
+            const totalElement = document.getElementById('total-amount');
+            if (totalElement) {
+                const currentTotal = parseFloat(totalElement.textContent.replace('RM', ''));
+                const newTotal = currentTotal - discountAmount;
+                totalElement.textContent = 'RM' + newTotal.toFixed(2);
+            }
+            
+            const promoMessage = document.getElementById('promo-message');
+            const promoCodeInput = document.getElementById('promo-code');
+            
+            if (promoMessage) promoMessage.innerHTML = '<span style="color: green;">Promo code applied successfully!</span>';
+            if (promoCodeInput) promoCodeInput.disabled = true;
+            
+            this.disabled = true;
+            this.textContent = 'Applied';
+            
+            showFlashMessage('Promo code applied!');
+        } else {
+            const promoMessage = document.getElementById('promo-message');
+            if (promoMessage) promoMessage.innerHTML = '<span style="color: red;">Invalid promo code</span>';
+            showFlashMessage('Invalid promo code', 'error');
+        }
+    });
+    
+    // Save for later (add to wishlist)
+    document.querySelectorAll('.save-for-later').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const productId = this.dataset.productId;
+            
+            fetch('../member/toggle-wishlist.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: `product_id=${productId}`
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showFlashMessage('Item saved to wishlist');
+                } else {
+                    showFlashMessage(data.message || 'Error saving item', 'error');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                showFlashMessage('Error saving item', 'error');
+            });
+        });
+    });
+
+    // Enhanced checkout form validation
+    document.getElementById('checkout-form')?.addEventListener('submit', function(e) {
+        const checkedItems = document.querySelectorAll('.select-item:checked');
+        
+        console.log('Checkout form submitted. Selected items:', checkedItems.length);
+        
+        if (checkedItems.length === 0) {
+            e.preventDefault();
+            alert('Please select at least one item before proceeding to checkout.');
+            return false;
+        }
+        
+        // Show loading state
+        const submitBtn = this.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            submitBtn.disabled = true;
+        }
+        
+        // Don't prevent default - let the form submit naturally
+        return true;
+    });
+
+    // "Select All" checkbox with improved logic
+    document.getElementById('select-all')?.addEventListener('change', function() {
+        const isChecked = this.checked;
+        document.querySelectorAll('.select-item').forEach(cb => {
+            cb.checked = isChecked;
+        });
+        updateCartTotals();
+    });
+});
+</script>
+
+<?php include '../includes/footer.php'; ?>

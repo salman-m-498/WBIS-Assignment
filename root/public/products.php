@@ -2,10 +2,6 @@
 session_start();
 require_once '../includes/db.php';
 
-// DB connection
-$pdo = new PDO("mysql:host=localhost;dbname=web_db;charset=utf8mb4", "root", "");
-$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
 // Get products by category_id if provided
 if (isset($_GET['category_id'])) {
     $category_id = $_GET['category_id'];
@@ -316,7 +312,7 @@ function showFlashMessage(message, type = 'success') {
 // Wishlist flash
 document.addEventListener('DOMContentLoaded', () => {
     const wishlistButtons = document.querySelectorAll('.add-to-wishlist');
-
+    
     wishlistButtons.forEach(button => {
         button.addEventListener('click', () => {
             const productId = button.dataset.productId;
@@ -347,9 +343,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 showFlashMessage('Unexpected error', 'error');
             });
         });
+
     });
 });
 </script>
+
+<script src="/assets/js/cart.js"></script>
 
 
 <?php

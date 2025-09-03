@@ -2,7 +2,7 @@
 session_start();
 
 // Check if user is logged in and is admin
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+if (!isset($_SESSION['admin_id']) || $_SESSION['admin_role'] !== 'admin') {
     header('Location: admin_login.php');
     exit();
 }
@@ -24,7 +24,7 @@ include '../includes/header.php';
     <div class="container">
         <div class="dashboard-header">
             <h1>Admin Dashboard</h1>
-            <p>Welcome back, <?php echo htmlspecialchars($_SESSION['username']); ?>! Manage your store</p>
+            <p>Welcome back, <?php echo htmlspecialchars($_SESSION['admin_username']); ?>! Manage your store</p>
         </div>
         
         <?php if (isset($_SESSION['success'])): ?>
@@ -95,16 +95,16 @@ include '../includes/header.php';
             <h2>Administrator Information</h2>
             <div class="info-grid">
                 <div class="info-item admin">
-                    <strong>Admin ID:</strong> <?php echo htmlspecialchars($_SESSION['user_id']); ?>
+                    <strong>Admin ID:</strong> <?php echo htmlspecialchars($_SESSION['admin_id']); ?>
                 </div>
                 <div class="info-item admin">
-                    <strong>Username:</strong> <?php echo htmlspecialchars($_SESSION['username']); ?>
+                    <strong>Username:</strong> <?php echo htmlspecialchars($_SESSION['admin_username']); ?>
                 </div>
                 <div class="info-item admin">
-                    <strong>Email:</strong> <?php echo htmlspecialchars($_SESSION['email']); ?>
+                    <strong>Email:</strong> <?php echo htmlspecialchars($_SESSION['admin_email']); ?>
                 </div>
                 <div class="info-item admin">
-                    <strong>Role:</strong> <?php echo ucfirst($_SESSION['role']); ?>
+                    <strong>Role:</strong> <?php echo ucfirst($_SESSION['admin_role']); ?>
                 </div>
             </div>
         </div>

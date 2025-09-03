@@ -6,10 +6,6 @@ require_once '../includes/db.php';
 // Get product ID
 $product_id = isset($_GET['id']) ? $_GET['id'] : '';
 
-// DB connection
-$pdo = new PDO("mysql:host=localhost;dbname=web_db;charset=utf8mb4", "root", "");
-$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
 // Get product
 $stmt = $pdo->prepare("SELECT * FROM products WHERE product_id = ?");
 $stmt->execute([$product_id]);
@@ -34,36 +30,76 @@ $page_description = $product['description'];
 $show_breadcrumb = true;
 $breadcrumb_items = [['url' => 'products.php', 'title' => 'Products']];
 
+// Fetch related products (same category, exclude current product)
+$related_stmt = $pdo->prepare("
+    SELECT * 
+    FROM products 
+    WHERE category_id = ? 
+      AND product_id != ? 
+      AND status = 'active'
+    LIMIT 4
+");
+$related_stmt->execute([$product['category_id'], $product_id]);
+$related_products = $related_stmt->fetchAll(PDO::FETCH_ASSOC);
 
 
-// // Writing review section 
-// // Make sure user is logged in
-// if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['user_id'])) {
-//     $user_id = $_SESSION['user_id'];
-//     $rating  = $_POST['rating'] ?? null;
-//     $title   = $_POST['title'] ?? null;
-//     $comment = $_POST['content'] ?? null;
+// REVIEWS SECTION
+// Review list pagination
+$GLOB_status = 'pending';
+$limit = 5; 
+$page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
+$offset = ($page - 1) * $limit;
 
-//     if ($rating && $title && $comment) {
-//         $review_id = uniqid("REV"); // generate id, e.g. REV64f29d...
-        
-//         $sql = "INSERT INTO reviews (review_id, user_id, product_id, rating, title, comment, status)
-//                 VALUES (:review_id, :user_id, :product_id, :rating, :title, :comment, 'pending')";
+// Count total reviews (once only)
+$count_stmt = $pdo->prepare("
+    SELECT COUNT(*) AS total_reviews
+    FROM reviews
+    WHERE product_id = ? AND status = ?
+");
+$count_stmt->execute([$product_id, $GLOB_status]);
+$count_result = $count_stmt->fetch(PDO::FETCH_ASSOC);
 
-//         $stmt = $pdo->prepare($sql);
-//         $stmt->execute([
-//             ':review_id'  => $review_id,
-//             ':user_id'    => $user_id,
-//             ':product_id' => $product_id,
-//             ':rating'     => $rating,
-//             ':title'      => $title,
-//             ':comment'    => $comment
-//         ]);
-//     }
-//     header("Location: product.php?id=$product_id");
-//     exit;
-// }
+$total_reviews = $count_result['total_reviews'] ?? 0;
+$total_reviews_pages = ceil($total_reviews / $limit);
 
+// Review sorting
+$sort = $_GET['sort'] ?? 'newest';
+switch ($sort) {
+    case 'oldest':
+        $orderBy = "r.created_at ASC";
+        break;
+    case 'high':
+        $orderBy = "r.rating DESC";
+        break;
+    case 'low':
+        $orderBy = "r.rating ASC";
+        break;
+    case 'newest':
+    default:
+        $orderBy = "r.created_at DESC";
+        break;
+}
+
+// Fetch review info
+$stmt = $pdo->prepare("
+    SELECT r.*, u.username, u.profile_pic
+    FROM reviews r
+    JOIN user u ON r.user_id = u.user_id
+    WHERE r.product_id = :product_id
+      AND r.status = :status
+    ORDER BY $orderBy
+    LIMIT :limit OFFSET :offset
+");
+
+$stmt->bindValue(':product_id', $product_id, PDO::PARAM_STR);
+$stmt->bindValue(':status', $GLOB_status, PDO::PARAM_STR);
+$stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+
+$stmt->execute();
+$reviews = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Writing review section 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['user_id'])) {
     $user_id = $_SESSION['user_id'];
     $rating  = $_POST['rating'] ?? null;
@@ -97,6 +133,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['user_id'])) {
             ':title'      => $title,
             ':comment'    => $comment
         ]);
+        
+        $_SESSION['review_success'] = "✅ Your review has been submitted successfully!";
     }
 
     header("Location: product.php?id=$product_id");
@@ -186,15 +224,15 @@ include '../includes/header.php';
                 </div>
                 
                 <div class="product-actions">
-                    <form method="post" action="add_to_cart.php">
-                        <input type="hidden" name="product_id" value="<?= $product_id ?>">
-                        <label for="quantity">Quantity:</label>
-                        <input type="number" name="quantity" id="quantity" value="1" min="1" max="<?= $product['stock_quantity'] ?>">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-shopping-cart"></i> Add to Cart
-                        </button>
-                    </form>
-                </div>
+                    <label for="quantity">Quantity:</label>
+                    <input type="number" id="quantity-<?= $product_id ?>" value="1" min="1" max="<?= $product['stock_quantity'] ?>">
+                <button 
+                    class="add-to-cart btn btn-primary" 
+                    data-product-id="<?= $product_id ?>"
+                    onclick="this.setAttribute('data-quantity', document.getElementById('quantity-<?= $product_id ?>').value)">
+                    <i class="fas fa-shopping-cart"></i> Add to Cart
+                </button>
+            </div>
                 
                 <div class="product-meta">
                     <div><strong>SKU:</strong> <?= htmlspecialchars($product['sku']) ?></div>
@@ -231,7 +269,7 @@ include '../includes/header.php';
             <div class="tab-nav">
                 <button class="tab-btn active" data-tab="description">Description</button>
                 <button class="tab-btn" data-tab="specifications">Specifications</button>
-                <button class="tab-btn" data-tab="reviews">Reviews (24)</button>
+                <button class="tab-btn" data-tab="reviews">Reviews (<?php echo $total_reviews; ?>)</button>
                 <button class="tab-btn" data-tab="shipping">Shipping & Returns</button>
             </div>
             
@@ -277,117 +315,160 @@ include '../includes/header.php';
                 
                 <!-- Reviews Tab -->
                 <div class="tab-pane" id="reviews">
+                    <?php
+                    // Step 1: Check if user has purchased this product
+                    $canReview = false;
+
+                    if (isset($_SESSION['user_id'])) {
+                    $user_id = $_SESSION['user_id'];
+
+                    $check_stmt = $pdo->prepare("
+                        SELECT COUNT(*) 
+                        FROM order_items oi
+                        JOIN orders o ON oi.order_id = o.order_id
+                        WHERE o.user_id = :user_id
+                        AND oi.product_id = :product_id
+                        AND o.order_status = 'delivered'
+                    ");
+                    $check_stmt->execute([
+                        ':user_id' => $user_id,
+                        ':product_id' => $product_id
+                    ]);
+                    $hasPurchased = $check_stmt->fetchColumn();
+
+                    if ($hasPurchased > 0) {
+                        $canReview = true;
+                    }
+                }
+                ?>
                     <div class="product-reviews">
+        
+                    <?php if (isset($_SESSION['review_success'])): ?>
+                        <div class="alert-success" style="padding:12px; margin:15px 0; border:1px solid #28a745; background:#eaf9f0; color:#155724; border-radius:6px;">
+                            <?= $_SESSION['review_success']; ?>
+                        </div>
+                        <?php unset($_SESSION['review_success']); ?>
+                    <?php endif; ?>
                         <div class="reviews-header">
                             <h3>Customer Reviews</h3>
                             <div class="reviews-summary">
-                                <div class="average-rating">
-                                    <span class="rating-number">5.0</span>
-                                    <div class="stars">
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                    </div>
-                                    <span>out of 5</span>
-                                </div>
-                                <div class="rating-breakdown">
-                                    <div class="rating-bar">
-                                        <span>5 stars</span>
-                                        <div class="bar"><div class="fill" style="width: 85%;"></div></div>
-                                        <span>20</span>
-                                    </div>
-                                    <div class="rating-bar">
-                                        <span>4 stars</span>
-                                        <div class="bar"><div class="fill" style="width: 10%;"></div></div>
-                                        <span>2</span>
-                                    </div>
-                                    <div class="rating-bar">
-                                        <span>3 stars</span>
-                                        <div class="bar"><div class="fill" style="width: 5%;"></div></div>
-                                        <span>1</span>
-                                    </div>
-                                    <div class="rating-bar">
-                                        <span>2 stars</span>
-                                        <div class="bar"><div class="fill" style="width: 0%;"></div></div>
-                                        <span>0</span>
-                                    </div>
-                                    <div class="rating-bar">
-                                        <span>1 star</span>
-                                        <div class="bar"><div class="fill" style="width: 0%;"></div></div>
-                                        <span>0</span>
-                                    </div>
-                                </div>
-                            </div>
+                                <?php
+                                try {
+                                    $avg_stmt = $pdo->prepare("
+                                        SELECT ROUND(AVG(rating),1) AS avg_rating, COUNT(*) AS total_reviews
+                                        FROM reviews
+                                        WHERE product_id = ? AND status = 'pending'
+                                    ");
+                                    $avg_stmt->execute([$product_id]);
+                                    $avg_result = $avg_stmt->fetch(PDO::FETCH_ASSOC);
+
+                                    $average = $avg_result['avg_rating'] ?? 0;
+                                    $total   = $avg_result['total_reviews'] ?? 0;
+
+                                    if ($total > 0) {
+                                        echo '<div class="average-rating">';
+                                        $filled = floor($average);
+                                        for ($i = 1; $i <= 5; $i++) {
+                                            echo $i <= $filled ? '<i class="fas fa-star"></i>' : '<i class="far fa-star"></i>';
+                                        }
+                                        echo " <strong>{$average}</strong> out of 5 ({$total} reviews)";
+                                        echo '</div>';
+                                    } else {
+                                        echo "<p>No reviews yet. Be the first to write one!</p>";
+                                    }
+                                } catch (Throwable $e) {
+                                    echo "<p style='color:#c00;'>Error loading summary.</p>";
+                                }
+                                ?>
                         </div>
                         
-                        <div class="reviews-list">
-                            <!-- Review 1 -->
-                            <div class="review-item">
-                                <div class="review-header">
-                                    <div class="reviewer-info">
-                                        <img src="assets/images/reviewer-1.jpg" alt="John D.">
-                                        <div>
-                                            <h4>John D.</h4>
-                                            <div class="stars">
-                                                <i class="fas fa-star"></i>
-                                                <i class="fas fa-star"></i>
-                                                <i class="fas fa-star"></i>
-                                                <i class="fas fa-star"></i>
-                                                <i class="fas fa-star"></i>
+                            <!-- Review sorting -->
+                            <form method="get" action="#reviews" style="margin-bottom:10px; float:right;">
+                                <input type="hidden" name="id" value="<?php echo htmlspecialchars($product_id); ?>">
+                                <select name="sort" onchange="this.form.submit()" style="padding:5px; margin-right:5px;">
+                                    <option value="newest" <?php if($sort=='newest') echo 'selected'; ?>>Newest</option>
+                                    <option value="oldest" <?php if($sort=='oldest') echo 'selected'; ?>>Oldest</option>
+                                    <option value="rating_high" <?php if($sort=='rating_high') echo 'selected'; ?>>Rating: High → Low</option>
+                                    <option value="rating_low" <?php if($sort=='rating_low') echo 'selected'; ?>>Rating: Low → High</option>
+                                </select>
+                            </form>
+
+                            <div style="height:30px;"></div>
+
+                            <div class="reviews-list">
+                                <?php if ($reviews): ?>
+                                    <?php foreach ($reviews as $review): ?>
+                                        <div class="review-item">
+                                            <!-- reviewer info -->
+                                            <div class="review-header">
+                                                <?php 
+                                                    $profilePic = !empty($review['profile_pic']) 
+                                                        ? $review['profile_pic'] 
+                                                        : 'default_profile_pic.jpg';
+                                                ?>
+                                                <img src="../assets/images/profile_pictures/<?= htmlspecialchars($profilePic) ?>" 
+                                                    alt="Profile Picture" 
+                                                    style="width:75px; height:75px; object-fit:cover; border-radius:50%; margin-right:8px; vertical-align:middle;">
+
+                                                <strong><?= htmlspecialchars($review['username']); ?></strong>
+                                                <span class="review-date">
+                                                    <?= date("F j, Y", strtotime($review['created_at'])); ?>
+                                                </span>
                                             </div>
+
+                                            <!-- rating stars -->
+                                            <div class="review-rating">
+                                                <?php for ($i = 1; $i <= 5; $i++): ?>
+                                                    <?= $i <= $review['rating'] ? '★' : '☆'; ?>
+                                                <?php endfor; ?>
+                                            </div>
+
+                                            <!-- review content -->
+                                            <h5><?= htmlspecialchars($review['title']); ?></h5>
+                                            <p><?= nl2br(htmlspecialchars($review['comment'])); ?></p>
                                         </div>
-                                    </div>
-                                    <span class="review-date">March 15, 2024</span>
-                                </div>
-                                <div class="review-content">
-                                    <h5>Excellent Quality!</h5>
-                                    <p>This action figure exceeded my expectations. The articulation is smooth, the paint job is clean, and the accessories are well-made. My son loves playing with it and I enjoy displaying it on my shelf.</p>
-                                </div>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
                             </div>
                             
-                            <!-- Review 2 -->
-                            <div class="review-item">
-                                <div class="review-header">
-                                    <div class="reviewer-info">
-                                        <img src="assets/images/reviewer-2.jpg" alt="Sarah M.">
-                                        <div>
-                                            <h4>Sarah M.</h4>
-                                            <div class="stars">
-                                                <i class="fas fa-star"></i>
-                                                <i class="fas fa-star"></i>
-                                                <i class="fas fa-star"></i>
-                                                <i class="fas fa-star"></i>
-                                                <i class="fas fa-star"></i>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <span class="review-date">March 10, 2024</span>
+                            <!-- Review pagination -->
+                            <?php if ($total_reviews_pages > 1): ?>
+                                <div class="pagination" style="margin-top:20px; text-align:center;">
+                                    <?php if ($page > 1): ?>
+                                        <a href="?id=<?php echo urlencode($product_id); ?>&sort=<?php echo urlencode($sort); ?>&page=<?php echo $page-1; ?>#reviews" 
+                                        class="page-btn" style="margin:0 5px;">Prev</a>
+                                    <?php endif; ?>
+
+                                    <?php for ($i = 1; $i <= $total_reviews_pages; $i++): ?>
+                                        <a href="?id=<?php echo urlencode($product_id); ?>&sort=<?php echo urlencode($sort); ?>&page=<?php echo $i; ?>#reviews" 
+                                        class="page-btn <?php echo $i == $page ? 'active' : ''; ?>" 
+                                        style="margin:0 5px;">
+                                            <?php echo $i; ?>
+                                        </a>
+                                    <?php endfor; ?>
+
+                                    <?php if ($page < $total_reviews_pages): ?>
+                                        <a href="?id=<?php echo urlencode($product_id); ?>&sort=<?php echo urlencode($sort); ?>&page=<?php echo $page+1; ?>#reviews" 
+                                        class="page-btn" style="margin:0 5px;">Next</a>
+                                    <?php endif; ?>
                                 </div>
-                                <div class="review-content">
-                                    <h5>Perfect Gift</h5>
-                                    <p>Bought this for my nephew's birthday and he absolutely loves it! The figure is sturdy and the joints hold poses well. Great value for the price.</p>
-                                </div>
-                            </div>
-                        </div>
+                            <?php endif; ?>
+
                         
                         <!-- Writing review section -->
-                        <div class="write-review-section" style="max-width:700px; margin:20px auto; padding:20px; border:1px solid #ddd; border-radius:10px; background:#f9f9f9;">
-                            <h4 style="margin-bottom:15px;">Write a Review</h4>
-                            <form class="review-form" method="POST" action="product.php?id=<?php echo $product_id; ?>">
-                                
-                                <!-- Rating -->
-                                <div class="rating-input" style="margin-bottom:15px;">
-                                    <label style="display:block; margin-bottom:8px;">Your Rating:</label>
-
-                                    <input type="radio" name="rating" value="5" id="star5" style="position:absolute; left:-9999px;">
-                                    <input type="radio" name="rating" value="4" id="star4" style="position:absolute; left:-9999px;">
-                                    <input type="radio" name="rating" value="3" id="star3" style="position:absolute; left:-9999px;">
-                                    <input type="radio" name="rating" value="2" id="star2" style="position:absolute; left:-9999px;">
-                                    <input type="radio" name="rating" value="1" id="star1" style="position:absolute; left:-9999px;">
-
-                                    <div class="star-rating" style="display:flex; flex-direction:row-reverse; gap:8px; justify-content:flex-start;">
+                        <?php if ($canReview): ?>
+                            <div class="write-review-section" style="max-width:700px; margin:20px auto; padding:20px; border:1px solid #ddd; border-radius:10px; background:#f9f9f9;">
+                                <h4 style="margin-bottom:15px;">Write a Review</h4>
+                                <form class="review-form" method="POST" action="product.php?id=<?php echo $product_id; ?>">
+                                     <!-- Rating -->
+                                     <div class="rating-input" style="margin-bottom:15px;">
+                                        <label style="display:block; margin-bottom:8px;">Your Rating:</label>
+                                        <input type="radio" name="rating" value="5" id="star5" style="position:absolute; left:-9999px;">
+                                        <input type="radio" name="rating" value="4" id="star4" style="position:absolute; left:-9999px;">
+                                        <input type="radio" name="rating" value="3" id="star3" style="position:absolute; left:-9999px;">
+                                        <input type="radio" name="rating" value="2" id="star2" style="position:absolute; left:-9999px;">
+                                        <input type="radio" name="rating" value="1" id="star1" style="position:absolute; left:-9999px;">
+                                        <div class="star-rating" style="display:flex; flex-direction:row-reverse; gap:8px; justify-content:flex-start;">
                                         <label for="star5" style="cursor:pointer; font-size:28px; color:#ccc;" onclick="setStars(5)">★</label>
                                         <label for="star4" style="cursor:pointer; font-size:28px; color:#ccc;" onclick="setStars(4)">★</label>
                                         <label for="star3" style="cursor:pointer; font-size:28px; color:#ccc;" onclick="setStars(3)">★</label>
@@ -398,23 +479,26 @@ include '../includes/header.php';
 
                                 <!-- Title -->
                                 <div class="form-group" style="margin-bottom:15px;">
-                                    <label for="review-title" style="display:block; margin-bottom:5px;">Review Title:</label>
-                                    <input type="text" id="review-title" name="title" required
-                                        style="width:100%; padding:10px; border:1px solid #ccc; border-radius:5px; font-size:15px;">
+                                    <label for="review-title">Review Title:</label>
+                                    <input type="text" id="review-title" name="title" required>
                                 </div>
 
                                 <!-- Review Content -->
                                 <div class="form-group" style="margin-bottom:15px;">
-                                    <label for="review-content" style="display:block; margin-bottom:5px;">Your Review:</label>
-                                    <textarea id="review-content" name="content" rows="8" required
-                                            style="width:100%; padding:12px; border:1px solid #ccc; border-radius:5px; font-size:15px; resize:vertical;"></textarea>
+                                    <label for="review-content">Your Review:</label>
+                                    <textarea id="review-content" name="content" rows="8" required></textarea>
                                 </div>
 
-                                <button type="submit" class="btn btn-primary"
-                                        style="background:#007bff; color:#fff; padding:10px 20px; border:none; border-radius:5px; cursor:pointer; font-size:15px;">
-                                    Submit Review
-                                </button>
+                                <button type="submit" class="btn btn-primary">Submit Review</button>
                             </form>
+                        </div>
+                    <?php else: ?>
+                        <div style="max-width:700px; margin:20px auto; padding:20px; text-align:center; border:1px solid #f5c2c7; border-radius:10px; background:#f8d7da; color:#842029;">
+                            <p style="margin:0; font-size:15px; font-weight:500;">
+                                ⚠️ Only verified customers who have completed an order for this product can write a review.
+                            </p>
+                        </div>
+                    <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -456,114 +540,26 @@ include '../includes/header.php';
         <h3>You Might Also Like</h3>
         
         <div class="related-grid">
-            <!-- Related Product 1 -->
-            <div class="related-item">
-                <img src="../assets/images/product-9.jpg" alt="Robot Companion Figure" onerror="this.src='https://via.placeholder.com/200x150/f93c64/ffffff?text=Toy'">
-                <h4><a href="product.php?id=9">Robot Companion Figure</a></h4>
-                <div class="price">$19.99</div>
-            </div>
-            
-            <!-- Related Product 2 -->
-            <div class="related-item">
-                <img src="../assets/images/product-10.jpg" alt="Space Explorer Set" onerror="this.src='https://via.placeholder.com/200x150/f93c64/ffffff?text=Toy'">
-                <h4><a href="product.php?id=10">Space Explorer Set</a></h4>
-                <div class="price">$34.99</div>
-            </div>
-            
-            <!-- Related Product 3 -->
-            <div class="related-item">
-                <img src="../assets/images/product-11.jpg" alt="Adventure Action Figure" onerror="this.src='https://via.placeholder.com/200x150/f93c64/ffffff?text=Toy'">
-                <h4><a href="product.php?id=11">Adventure Action Figure</a></h4>
-                <div class="price">$24.99</div>
-            </div>
-            
-            <!-- Related Product 4 -->
-            <div class="related-item">
-                <img src="../assets/images/product-12.jpg" alt="Fantasy Warrior Set" onerror="this.src='https://via.placeholder.com/200x150/f93c64/ffffff?text=Toy'">
-                <h4><a href="product.php?id=12">Fantasy Warrior Set</a></h4>
-                <div class="price">$29.99</div>
-            </div>
-        </div>
-    </div>
-</section>
-            <div class="product-card">
-                <div class="product-image">
-                    <img src="assets/images/product-10.jpg" alt="Space Warrior Figure">
-                    <div class="product-overlay">
-                        <button class="quick-view" data-product-id="10">Quick View</button>
-                        <button class="add-to-wishlist" data-product-id="10"><i class="far fa-heart"></i></button>
+            <?php if ($related_products): ?>
+                <?php foreach ($related_products as $rel): ?>
+                    <div class="related-item">
+                        <img src="/<?= htmlspecialchars($rel['image']) ?>" 
+                             alt="<?= htmlspecialchars($rel['name']) ?>" 
+                             onerror="this.src='https://via.placeholder.com/200x150/f93c64/ffffff?text=<?= urlencode($rel['name']) ?>'">
+                        <h4><a href="product.php?id=<?= urlencode($rel['product_id']) ?>">
+                            <?= htmlspecialchars($rel['name']) ?>
+                        </a></h4>
+                        <div class="price">
+                            RM <?= number_format($rel['sale_price'] ?? $rel['price'], 2) ?>
+                            <?php if ($rel['sale_price'] && $rel['sale_price'] < $rel['price']): ?>
+                                <span class="original-price">RM <?= number_format($rel['price'], 2) ?></span>
+                            <?php endif; ?>
+                        </div>
                     </div>
-                    <div class="product-badge sale">Sale</div>
-                </div>
-                <div class="product-content">
-                    <h3><a href="product.php?id=10">Space Warrior Figure</a></h3>
-                    <div class="product-rating">
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <span>(21 reviews)</span>
-                    </div>
-                    <div class="product-price">
-                        <span class="current-price">$22.99</span>
-                        <span class="original-price">$29.99</span>
-                    </div>
-                    <button class="add-to-cart" data-product-id="10">Add to Cart</button>
-                </div>
-            </div>
-            
-            <!-- Related Product 3 -->
-            <div class="product-card">
-                <div class="product-image">
-                    <img src="assets/images/product-11.jpg" alt="Action Figure Display Case">
-                    <div class="product-overlay">
-                        <button class="quick-view" data-product-id="11">Quick View</button>
-                        <button class="add-to-wishlist" data-product-id="11"><i class="far fa-heart"></i></button>
-                    </div>
-                </div>
-                <div class="product-content">
-                    <h3><a href="product.php?id=11">Action Figure Display Case</a></h3>
-                    <div class="product-rating">
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="far fa-star"></i>
-                        <span>(8 reviews)</span>
-                    </div>
-                    <div class="product-price">
-                        <span class="current-price">$34.99</span>
-                    </div>
-                    <button class="add-to-cart" data-product-id="11">Add to Cart</button>
-                </div>
-            </div>
-            
-            <!-- Related Product 4 -->
-            <div class="product-card">
-                <div class="product-image">
-                    <img src="assets/images/product-12.jpg" alt="Robot Accessory Pack">
-                    <div class="product-overlay">
-                        <button class="quick-view" data-product-id="12">Quick View</button>
-                        <button class="add-to-wishlist" data-product-id="12"><i class="far fa-heart"></i></button>
-                    </div>
-                </div>
-                <div class="product-content">
-                    <h3><a href="product.php?id=12">Robot Accessory Pack</a></h3>
-                    <div class="product-rating">
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="far fa-star"></i>
-                        <span>(12 reviews)</span>
-                    </div>
-                    <div class="product-price">
-                        <span class="current-price">$14.99</span>
-                    </div>
-                    <button class="add-to-cart" data-product-id="12">Add to Cart</button>
-                </div>
-            </div>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <p>No related products found.</p>
+            <?php endif; ?>
         </div>
     </div>
 </section>
@@ -649,26 +645,25 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Add to Cart Animation
-    const addToCartBtn = document.querySelector('.product-actions .btn-primary');
+   const addToCartBtn = document.querySelector('.product-actions .btn-primary');
     if (addToCartBtn) {
-        addToCartBtn.addEventListener('click', function(e) {
-            // Add loading state
-            const originalText = this.innerHTML;
-            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
-            this.disabled = true;
-            
-            // Trigger confetti
-            if (typeof launchConfetti === 'function') {
-                launchConfetti();
-            }
-            
-            // Reset button after 2 seconds (you can remove this in production)
-            setTimeout(() => {
-                this.innerHTML = originalText;
-                this.disabled = false;
-            }, 2000);
-        });
-    }
+    addToCartBtn.addEventListener('click', function(e) {
+        // Only run animation
+        const originalText = this.innerHTML;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
+        this.disabled = true;
+
+        if (typeof launchConfetti === 'function') {
+            launchConfetti();
+        }
+
+        // Reset after cart.js finishes 
+        setTimeout(() => {
+            this.innerHTML = originalText;
+            this.disabled = false;
+        }, 1500);
+    });
+}
     
     // Image Zoom on Hover (Desktop)
     if (window.innerWidth > 768) {
@@ -685,6 +680,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
+<script src="/assets/js/cart.js"></script>
 
 <?php
 // Include footer

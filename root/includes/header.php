@@ -4,6 +4,15 @@ $current_dir = basename(dirname($_SERVER['SCRIPT_NAME']));
 $is_subdirectory = in_array($current_dir, ['public', 'member', 'admin']);
 $assets_path = $is_subdirectory ? '../assets' : 'assets';
 $root_path = $is_subdirectory ? '../' : '';
+
+if (isset($_SESSION['user_id'])) {
+    require_once __DIR__ . '/../includes/db.php';
+    $stmt = $pdo->prepare("SELECT SUM(quantity) AS total FROM cart WHERE user_id = ?");
+    $stmt->execute([$_SESSION['user_id']]);
+    $cart_count = (int) $stmt->fetchColumn();
+} else {
+    $cart_count = 0;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -81,7 +90,9 @@ $root_path = $is_subdirectory ? '../' : '';
                     <div class="cart">
                         <a href="<?php echo $root_path; ?>public/cart.php" class="cart-icon">
                             <i class="fas fa-shopping-cart"></i>
-                            <span class="cart-count"><?php echo isset($_SESSION['cart_count']) ? $_SESSION['cart_count'] : 0; ?></span>
+                            <span id="cart-count" class="cart-count">
+                                <?php echo  $cart_count; ?>
+                            </span>
                         </a>
                     </div>
                 </div>
