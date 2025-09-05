@@ -84,25 +84,26 @@ $submittedReviews = $stmt->fetchAll(PDO::FETCH_ASSOC);
 include '../includes/header.php';
 ?>
 
-<div class="container" style="max-width:1200px; margin-top:30px;">
+<div class="reviews-page">
+<div class="member-reviews-section">
+    <div class="page-header">
 
     <!-- Pending Reviews -->
     <h2>Pending Reviews</h2>
     <p>Select a product from your completed orders to leave a review.</p>
+    </div>
 
     <?php if (!empty($pendingReviews)): ?>
-        <div style="display:flex; flex-direction:column; gap:20px; padding:10px;">
+        <div class="reviews-list">
             <?php foreach ($pendingReviews as $item): ?>
-                <div style="display:flex; align-items:center; background:#fff; border:1px solid #ddd; border-radius:12px; padding:15px; box-shadow:0 2px 8px rgba(0,0,0,0.1);">
-                    <div style="margin-right:20px; flex-shrink:0;">
+                <div class="pending-review-card">
                         <a href="../public/product.php?id=<?= urlencode($item['product_id']) ?>#reviews">
                             <img src="../<?= htmlspecialchars($item['image_path'] ?? $item['image']) ?>" 
                                 alt="<?= htmlspecialchars($item['name']) ?>"
                                 style="width:100px; height:100px; object-fit:cover; border-radius:10px;">
                         </a>
-                    </div>
-                    <div style="flex:1;">
-                        <h3 style="margin:0 0 10px;"><?= htmlspecialchars($item['name']) ?></h3>
+                    <div>
+                        <h3><?= htmlspecialchars($item['name']) ?></h3>
                         <a href="../public/product.php?id=<?= urlencode($item['product_id']) ?>#reviews" 
                            class="btn btn-primary"
                            style="padding:8px 15px; background:#f93c64; color:#fff; border-radius:6px; text-decoration:none;">
@@ -117,7 +118,7 @@ include '../includes/header.php';
     <?php endif; ?>
 
     <?php if ($totalPages > 1): ?>
-        <div class="pagination" style="margin-top:20px; text-align:center;">
+        <div class="pagination">
             <?php if ($page > 1): ?>
                 <a href="?page=<?= $page - 1 ?>" class="page-btn">Prev</a>
             <?php endif; ?>
@@ -134,23 +135,21 @@ include '../includes/header.php';
     <hr style="margin:40px 0;">
 
     <!-- Submitted Reviews -->
+    <div class="page-header">
     <h2>My Reviews</h2>
+    </div>
     <?php if (!empty($submittedReviews)): ?>
-        <div style="display:flex; flex-direction:column; gap:20px; padding:10px;">
+        <div  class="reviews-list">
             <?php foreach ($submittedReviews as $review): ?>
-                <div style="background:#fff; border:1px solid #ddd; border-radius:12px; padding:15px; box-shadow:0 2px 8px rgba(0,0,0,0.1);">
-                    <div style="display:flex; align-items:center; gap:15px;">
+                <div class="review-card">
                         <a href="../public/product.php?id=<?= urlencode($review['product_id']) ?>">
                             <img src="../<?= htmlspecialchars($review['image_path'] ?? $review['image']) ?>" 
-                                alt="<?= htmlspecialchars($review['name']) ?>"
-                                style="width:80px; height:80px; object-fit:cover; border-radius:10px;">
+                                alt="<?= htmlspecialchars($review['name']) ?>">
                         </a>
-                        <div style="flex:1;">
-                            <h3 style="margin:0;"><?= htmlspecialchars($review['name']) ?></h3>
-                            <p style="margin:5px 0; color:#666;">
-                                ⭐ <?= str_repeat("★", (int)$review['rating']) ?>
-                            </p>
-                            <p style="margin:5px 0;"><?= nl2br(htmlspecialchars($review['comment'])) ?></p>
+                        <div>
+                            <h3><?= htmlspecialchars($review['name']) ?></h3>
+                            <p>⭐ <?= str_repeat("★", (int)$review['rating']) ?></p>
+                            <p><?= nl2br(htmlspecialchars($review['comment'])) ?></p>
                             <small style="color:#888;">
                                 <?= date("F j, Y", strtotime($review['created_at'])) ?>
                             </small>
@@ -163,5 +162,4 @@ include '../includes/header.php';
         <p style="color:#666;">You haven't written any reviews yet.</p>
     <?php endif; ?>
 </div>
-
-<div style="height:80px;"></div>
+</div>

@@ -130,6 +130,7 @@ include '../includes/header.php';
 </div>
 <?php unset($_SESSION['error_message']); endif; ?>
 
+<div class="orders-page">
 <section class="member-orders-section">
     <div class="container">
         <div class="page-header">
@@ -203,6 +204,7 @@ include '../includes/header.php';
         <?php endif; ?>
     </div>
 </section>
+</div>
 
 <!-- Cancel Order Modal -->
 <div id="cancel-modal">

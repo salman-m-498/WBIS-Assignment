@@ -38,7 +38,7 @@ include '../includes/header.php';
                     <?php endif; ?>
                 </div>
                 
-                <form class="register-form" action="auth.php" method="POST">
+                <form class="register-form" action="auth.php" method="POST" enctype="multipart/form-data">
                     <input type="hidden" name="action" value="register">
                     
                     <!-- Personal Information -->
@@ -70,15 +70,21 @@ include '../includes/header.php';
                         
                         <div class="form-group">
                             <label for="phone">Phone Number</label>
-                            <input type="tel" id="phone" name="phone" required>
-                            <i class="fas fa-phone"></i>
+                            <input type="tel" id="phone" name="phone" required
+                             value="<?php echo isset($_SESSION['form_data']['phone']) ? htmlspecialchars($_SESSION['form_data']['phone']) : ''; ?>">
                         </div>
                         
                         <div class="form-group">
                             <label for="date_of_birth">Date of Birth</label>
-                            <input type="date" id="date_of_birth" name="date_of_birth" required>
-                            <i class="fas fa-calendar"></i>
+                            <input type="date" id="date_of_birth" name="date_of_birth" required
+                             value="<?php echo isset($_SESSION['form_data']['date_of_birth']) ? htmlspecialchars($_SESSION['form_data']['date_of_birth']) : ''; ?>">
                         </div>
+
+                        <div class="form-group">
+                            <label for="profile_pic">Profile Picture (Optional)</label>
+                            <input type="file" id="profile_pic" name="profile_pic" accept="image/*">
+                        </div>
+
                     </div>
                     
                     <!-- Account Security -->
@@ -127,49 +133,35 @@ include '../includes/header.php';
                         
                         <div class="form-group">
                             <label for="address_line1">Address Line 1</label>
-                            <input type="text" id="address_line1" name="address_line1" required>
-                            <i class="fas fa-home"></i>
+                            <input type="text" id="address_line1" name="address_line1" required
+                            value="<?php echo isset($_SESSION['form_data']['address_line1']) ? htmlspecialchars($_SESSION['form_data']['address_line1']) : ''; ?>">
                         </div>
                         
                         <div class="form-group">
                             <label for="address_line2">Address Line 2 (Optional)</label>
-                            <input type="text" id="address_line2" name="address_line2">
-                            <i class="fas fa-home"></i>
+                            <input type="text" id="address_line2" name="address_line2"
+                            value="<?php echo isset($_SESSION['form_data']['address_line2']) ? htmlspecialchars($_SESSION['form_data']['address_line2']) : ''; ?>">
                         </div>
                         
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="city">City</label>
-                                <input type="text" id="city" name="city" required>
-                                <i class="fas fa-city"></i>
+                                <input type="text" id="city" name="city" required
+                                value="<?php echo isset($_SESSION['form_data']['city']) ? htmlspecialchars($_SESSION['form_data']['city']) : ''; ?>">
                             </div>
                             
                             <div class="form-group">
                                 <label for="state">State/Province</label>
-                                <input type="text" id="state" name="state" required>
-                                <i class="fas fa-map-marker-alt"></i>
+                                <input type="text" id="state" name="state" required
+                                value="<?php echo isset($_SESSION['form_data']['state']) ? htmlspecialchars($_SESSION['form_data']['state']) : ''; ?>">
                             </div>
                         </div>
                         
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="postal_code">Postal Code</label>
-                                <input type="text" id="postal_code" name="postal_code" required>
-                                <i class="fas fa-mail-bulk"></i>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="country">Country</label>
-                                <select id="country" name="country" required>
-                                    <option value="">Select Country</option>
-                                    <option value="MY">Malaysia</option>
-                                    <option value="SG">Singapore</option>
-                                    <option value="CN">China</option>
-                                    <option value="AU">Australia</option>
-                                    <option value="KR">Korea</option>
-                                    <option value="JP">Japan</option>
-                                </select>
-                                <i class="fas fa-globe"></i>
+                                <input type="text" id="postal_code" name="postal_code" required
+                                value="<?php echo isset($_SESSION['form_data']['postal_code']) ? htmlspecialchars($_SESSION['form_data']['postal_code']) : ''; ?>">
                             </div>
                         </div>
                     </div>

@@ -19,6 +19,7 @@ if ($action === 'login') {
     exit();
 }
 
+
 function handleLogin() {
     global $pdo;
     
@@ -94,11 +95,37 @@ function handleRegister() {
     $city = trim($_POST['city'] ?? '');
     $state = trim($_POST['state'] ?? '');
     $postal_code = trim($_POST['postal_code'] ?? '');
-    $country = $_POST['country'] ?? '';
     $newsletter = isset($_POST['newsletter']);
     $marketing = isset($_POST['marketing']);
     $terms = isset($_POST['terms']);
     $age_verification = isset($_POST['age_verification']);
+
+     function handleProfilePicUpload($file) {
+        if (!isset($file['error']) || $file['error'] !== UPLOAD_ERR_OK) return null;
+
+        $allowed = ['jpg','jpeg','png','gif','webp'];
+        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        if (!in_array($ext, $allowed)) return null;
+
+        $uploadDirAbs = rtrim(__DIR__ . '/../assets/images/profile_pictures/', '/\\') . DIRECTORY_SEPARATOR;
+        $uploadDirWeb = '/assets/images/profile_pictures/';
+
+        if (!is_dir($uploadDirAbs)) @mkdir($uploadDirAbs, 0775, true);
+
+        $filename = uniqid('user_', true) . '.' . $ext;
+        $targetAbs = $uploadDirAbs . $filename;
+
+        if (move_uploaded_file($file['tmp_name'], $targetAbs)) {
+            return $uploadDirWeb . $filename; // Return web path for DB
+        }
+
+        return null;
+    }
+
+    if (isset($_FILES['profile_pic'])) {
+        $profile_pic = handleProfilePicUpload($_FILES['profile_pic']);
+    }
+
     
     // Validate required fields
     $required_fields = [
@@ -112,8 +139,7 @@ function handleRegister() {
         'address_line1' => $address_line1,
         'city' => $city,
         'state' => $state,
-        'postal_code' => $postal_code,
-        'country' => $country
+        'postal_code' => $postal_code
     ];
     
     foreach ($required_fields as $field => $value) {
@@ -165,6 +191,8 @@ function handleRegister() {
             header('Location: register.php');
             exit();
         }
+
+        $pdo->beginTransaction();
         
         // Generate username from first and last name
         $username = strtolower($first_name . '_' . $last_name);
@@ -183,71 +211,60 @@ function handleRegister() {
         // Hash password
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
         
-        // Prepare full address
-        $full_address = $address_line1;
-        if (!empty($address_line2)) {
-            $full_address .= ', ' . $address_line2;
-        }
-        $full_address .= ', ' . $city . ', ' . $state . ' ' . $postal_code . ', ' . $country;
-        
         // Insert user into database
         $stmt = $pdo->prepare("
             INSERT INTO user (user_id, username, email, password, role, profile_pic) 
-            VALUES (?, ?, ?, ?, 'member', NULL)
+            VALUES (?, ?, ?, ?, 'member', ?)
         ");
         
-        $stmt->execute([$user_id, $username, $email, $hashed_password]);
-        
-        // Create user profile table if it doesn't exist (optional - for additional user data)
-        $pdo->exec("
-            CREATE TABLE IF NOT EXISTS user_profiles (
-                profile_id INT AUTO_INCREMENT PRIMARY KEY,
-                user_id VARCHAR(11) NOT NULL,
-                first_name VARCHAR(50) NOT NULL,
-                last_name VARCHAR(50) NOT NULL,
-                phone VARCHAR(20),
-                date_of_birth DATE,
-                address TEXT,
-                newsletter_subscription BOOLEAN DEFAULT FALSE,
-                marketing_emails BOOLEAN DEFAULT FALSE,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES user(user_id) ON DELETE CASCADE
-            )
-        ");
+        $stmt->execute([$user_id, $username, $email, $hashed_password,$profile_pic]);
         
         // Insert user profile
         $stmt = $pdo->prepare("
-            INSERT INTO user_profiles (user_id, first_name, last_name, phone, date_of_birth, address, newsletter_subscription, marketing_emails) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ");
+    INSERT INTO user_profiles 
+        (user_id, first_name, last_name, phone, date_of_birth, 
+         address_line1, address_line2, city, state, postal_code, 
+         newsletter_subscription, marketing_emails) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ");
+
         
-        $stmt->execute([
-            $user_id, 
-            $first_name, 
-            $last_name, 
-            $phone, 
-            $date_of_birth, 
-            $full_address, 
-            $newsletter, 
-            $marketing
-        ]);
-        
+    $stmt->execute([
+        $user_id, 
+        $first_name, 
+        $last_name, 
+        $phone, 
+        $date_of_birth, 
+        $address_line1, 
+        $address_line2, 
+        $city, 
+        $state, 
+        $postal_code, 
+        $newsletter ? 1 : 0, 
+        $marketing ? 1 : 0
+    ]);
+         
+        $pdo->commit();
+
         // Auto-login the user
         $_SESSION['user_id'] = $user_id;
         $_SESSION['username'] = $username;
         $_SESSION['email'] = $email;
         $_SESSION['role'] = 'member';
-        $_SESSION['profile_pic'] = null;
+        $_SESSION['profile_pic'] =  $profile_pic;
         
         // Clear form data
         unset($_SESSION['form_data']);
         
         $_SESSION['success'] = 'Registration successful! Welcome to ToyLand Store, ' . $first_name . '!';
-        header('Location: ../member/dashboard.php');
+        header('Location: login.php');
         exit();
         
     } catch (PDOException $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+
         $_SESSION['error'] = 'An error occurred during registration. Please try again.';
         $_SESSION['form_data'] = $_POST;
         header('Location: register.php');

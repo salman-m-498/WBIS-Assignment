@@ -74,8 +74,8 @@ include '../includes/header.php';
                 </div>
                 <div class="card-content">
                     <h3>👤 Account Settings</h3>
-                    <p>Update your profile information</p>
-                    <a href="profile_edit.php" class="btn btn-primary">Edit Profile</a>
+                    <p>View and Manage your profile information</p>
+                    <a href="profile.php" class="btn btn-primary">View Profile</a>
                 </div>
             </div>
         </div>

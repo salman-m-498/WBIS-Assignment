@@ -67,15 +67,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
     // Update user table
-    if (!empty($password)) {
-        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+    if (!empty($_POST['current_password']) && !empty($_POST['password'])) {
+    $currentPassword = $_POST['current_password'];
+    $newPassword     = $_POST['password'];
+
+    // Verify current password first
+    if (!password_verify($currentPassword, $user['password'])) {
+        die("Error: Current password is incorrect.");
+    }
+
+    if (!empty($newPassword)) {
+        $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
         $updateUsersSql = "UPDATE user SET username = ?, email = ?, password = ?, profile_pic = ? WHERE user_id = ?";
         $stmt = $pdo->prepare($updateUsersSql);
         $stmt->execute([$username, $email, $hashedPassword, $profilePicName, $userId]);
     } else {
-        $updateUsersSql = "UPDATE user SET username = ?, email = ?, profile_pic = ? WHERE user_id = ?";
-        $stmt = $pdo->prepare($updateUsersSql);
-        $stmt->execute([$username, $email, $profilePicName, $userId]);
+        die("Error: New password cannot be empty if changing password.");
+    }
+    } else {
+    // No password change, update other details only
+    $updateUsersSql = "UPDATE user SET username = ?, email = ?, profile_pic = ? WHERE user_id = ?";
+    $stmt = $pdo->prepare($updateUsersSql);
+    $stmt->execute([$username, $email, $profilePicName, $userId]);
     }
 
     // Update user_profiles table
@@ -93,92 +106,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 include '../includes/header.php';
 ?>
 
-<div class="container" style="max-width:600px; margin-top:30px;">
+<div class="profile-page">
+<div class="profile-edit-container">
     <h2>Edit User Profile</h2>
 
-    <?php if (!empty($message)) : ?>
-        <p style="color:green;"><?= $message ?></p>
-    <?php endif; ?>
-
-    <form method="post" enctype="multipart/form-data">
-
-
-
-
+  <form method="post" enctype="multipart/form-data">
         <?php
-        $profilePic = 'default_profile_pic.jpg';
-        if (!empty($user['profile_pic'])) {
-            $filePath = "../assets/images/profile_pictures/" . $user['profile_pic'];
-            if (file_exists($filePath)) {
-                $profilePic = $user['profile_pic'];
-            }
-        }
+        $defaultPic = '/assets/images/profile_pictures/default_profile_pic.jpg';
+        $profilePicPath =  !empty($user['profile_pic']) ? $user['profile_pic'] : $defaultPic;
         ?>
-        <div style="margin-bottom:10px;">
+        
+        <div class="form-group profile-pic-group">
             <label><strong>Profile Picture:</strong></label><br>
-            <img src="../assets/images/profile_pictures/<?= htmlspecialchars($profilePic) ?>" 
-                alt="Profile Picture" 
-                style="width:120px; height:120px; object-fit:cover; border-radius:50%; margin-bottom:10px;">
+            <img src="<?= htmlspecialchars($profilePicPath) ?>" alt="Profile Picture" class="profile-pic-preview">
             <br>
             <input type="file" name="profile_pic" accept="image/*">
         </div>
 
-
-
-
-        <div style="margin-bottom:10px;">
+        <div class="form-group">
             <label><strong>First Name:</strong></label>
-            <input type="text" name="first_name" value="<?= htmlspecialchars($user['first_name']) ?>" style="width:100%; padding:5px;">
+            <input type="text" name="first_name" value="<?= htmlspecialchars($user['first_name']) ?>">
         </div>
 
-        <div style="margin-bottom:10px;">
+        <div class="form-group">
             <label><strong>Last Name:</strong></label>
-            <input type="text" name="last_name" value="<?= htmlspecialchars($user['last_name']) ?>" style="width:100%; padding:5px;">
+            <input type="text" name="last_name" value="<?= htmlspecialchars($user['last_name']) ?>">
         </div>
 
-        <div style="margin-bottom:10px;">
+        <div class="form-group">
             <label><strong>Email address:</strong></label>
-            <input type="text" name="email" value="<?= htmlspecialchars($user['email']) ?>" style="width:100%; padding:5px;">
+            <input type="text" name="email" value="<?= htmlspecialchars($user['email']) ?>">
         </div>
 
-        <div style="margin-bottom:10px;">
-            <label><strong>New Password:</strong></label>
-            <input type="password" name="password" placeholder="Leave blank to keep current password" style="width:100%; padding:5px;">
-        </div>
-
-        <div style="margin-bottom:10px;">
+        <div class="form-group">
             <label><strong>Home address:</strong></label>
-            <input type="text" name="address" value="<?= htmlspecialchars($user['address']) ?>" style="width:100%; padding:5px;">
+            <input type="text" name="address" value="<?= htmlspecialchars($user['address']) ?>">
         </div>
 
-        <div style="margin-bottom:10px;">
+        <div class="form-group">
             <label><strong>Phone:</strong></label>
-            <input type="text" name="phone" value="<?= htmlspecialchars($user['phone']) ?>" style="width:100%; padding:5px;">
+            <input type="text" name="phone" value="<?= htmlspecialchars($user['phone']) ?>">
         </div>
 
-        <div style="margin-bottom:10px;">
-            <label>
-                <input type="checkbox" name="newsletter_subscription" value="1" <?= !empty($user['newsletter_subscription']) ? 'checked' : '' ?>> Newsletter Subscription
+        <div class="form-group checkbox-group">
+            <label  class="checkbox-label">
+                Newsletter Subscription
+                <input type="checkbox" name="newsletter_subscription" value="1" <?= !empty($user['newsletter_subscription']) ? 'checked' : '' ?>> 
+                <span class="checkmark"></span>
             </label>
         </div>
 
-        <div style="margin-bottom:10px;">
-            <label>
-                <input type="checkbox" name="marketing_emails" value="1" <?= !empty($user['marketing_emails']) ? 'checked' : '' ?>> Receive marketing emails
+        <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+                Receive marketing emails
+                <input type="checkbox" name="marketing_emails" value="1" <?= !empty($user['marketing_emails']) ? 'checked' : '' ?>> 
+                <span class="checkmark"></span>
             </label>
         </div>
 
-        <div style="margin-bottom:10px;">
+        <div class="form-group">
             <label><strong>Birth Date:</strong></label>
-            <input type="date" name="date_of_birth" value="<?= htmlspecialchars($user['date_of_birth']) ?>" style="width:100%; padding:5px;">
+            <input type="date" name="date_of_birth" value="<?= htmlspecialchars($user['date_of_birth']) ?>">
         </div>
 
-        <button type="submit" style="padding:8px 15px; margin-top:10px;">Save Changes</button>
+        <button type="submit" class="btn-save">Save Changes</button>
     </form>
 
-    <div style="margin-top:15px;">
+    <div class="return-link">
         <a href="dashboard.php?id=<?= urlencode($user['user_id']) ?>" style="text-decoration:none; color:#007bff;">Return to dashboard
     </div>
 </div>
+</div>
 
-<div style="height:100px;"></div>

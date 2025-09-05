@@ -62,7 +62,7 @@ include '../includes/header.php';
                             <span class="checkmark"></span>
                             Remember me
                         </label>
-                        <a href="forgot-password.php" class="forgot-password">Forgot Password?</a>
+                        <a href="forgot_password.php" class="forgot-password">Forgot Password?</a>
                     </div>
                     
                     <button type="submit" class="btn btn-primary btn-large">
