@@ -13,7 +13,7 @@ $breadcrumb_items = [
 // testing 
 
 // Include header
-include 'includes/header.php';
+include '../includes/header.php';
 ?>
 
 <!-- About Hero Section -->
@@ -39,7 +39,7 @@ include 'includes/header.php';
                 <p>Today, we serve families across Malaysia and Southeast Asia, helping parents find the perfect toys for their children's development and entertainment needs, celebrating our rich multicultural heritage through play.</p>
             </div>
             <div class="story-image">
-                <img src="assets/images/about-story.jpg" alt="ToyLand Store History">
+                <img src="/assets/images/ToyLandLogo.png" alt="ToyLand Store History">
             </div>
         </div>
     </div>

@@ -1,4 +1,11 @@
 <?php
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+require_once __DIR__ . '/../includes/db.php';
+
 // Determine the correct base path for assets
 $current_dir = basename(dirname($_SERVER['SCRIPT_NAME']));
 $is_subdirectory = in_array($current_dir, ['public', 'member', 'admin']);
@@ -6,13 +13,17 @@ $assets_path = $is_subdirectory ? '../assets' : 'assets';
 $root_path = $is_subdirectory ? '../' : '';
 
 if (isset($_SESSION['user_id'])) {
-    require_once __DIR__ . '/../includes/db.php';
     $stmt = $pdo->prepare("SELECT SUM(quantity) AS total FROM cart WHERE user_id = ?");
     $stmt->execute([$_SESSION['user_id']]);
     $cart_count = (int) $stmt->fetchColumn();
 } else {
     $cart_count = 0;
 }
+
+// Fetch main categories with their subcategories
+$navStmt = $pdo->query("SELECT category_id, name FROM categories WHERE parent_id IS NULL ORDER BY name ASC");
+$mainCategories = $navStmt->fetchAll(PDO::FETCH_ASSOC);
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -44,7 +55,7 @@ if (isset($_SESSION['user_id'])) {
                 <span>🎁 Gift Ready</span>
             </div>
             <div class="top-bar-right">
-                <a href="shipping.php">Free Shipping on Orders Over $50</a>
+                <a href="shipping.php">Free Shipping on Orders Over RM150</a>
                 <div class="social-links">
                     <a href="#"><i class="fab fa-facebook"></i></a>
                     <a href="#"><i class="fab fa-twitter"></i></a>
@@ -98,28 +109,35 @@ if (isset($_SESSION['user_id'])) {
                 </div>
             </div>
             
-            <!-- Navigation -->
-            <nav class="main-nav">
-                <ul class="nav-menu">
-                    <li><a href="<?php echo $root_path; ?>index.php">Home</a></li>
-                    <li class="dropdown">
-                        <a href="<?php echo $root_path; ?>public/products.php">Categories <i class="fas fa-chevron-down"></i></a>
-                        <ul class="dropdown-menu">
-                            <li><a href="<?php echo $root_path; ?>public/products.php?category=action-figures">Action Figures</a></li>
-                            <li><a href="<?php echo $root_path; ?>public/products.php?category=board-games">Board Games</a></li>
-                            <li><a href="<?php echo $root_path; ?>public/products.php?category=educational">Educational Toys</a></li>
-                            <li><a href="<?php echo $root_path; ?>public/products.php?category=outdoor">Outdoor Toys</a></li>
-                            <li><a href="<?php echo $root_path; ?>public/products.php?category=arts-crafts">Arts & Crafts</a></li>
-                            <li><a href="<?php echo $root_path; ?>public/products.php?category=babies-toddlers">Babies & Toddlers</a></li>
-                        </ul>
+           <!-- Navigation -->
+<nav class="main-nav">
+    <ul class="nav-menu">
+        <li><a href="<?php echo $root_path; ?>index.php">Home</a></li>
+        <li class="dropdown">
+            <a href="<?php echo $root_path; ?>public/products.php">Categories <i class="fas fa-chevron-down"></i></a>
+            <ul class="dropdown-menu">
+             <?php
+                // Fetch only main categories
+                $stmt = $pdo->query("SELECT category_id, name FROM categories WHERE parent_id IS NULL ORDER BY name ASC");
+                $mainCategories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                foreach ($mainCategories as $main):
+                ?>
+                    <li>
+                        <a href="<?php echo $root_path; ?>public/products.php?category=<?= $main['category_id'] ?>">
+                            <?= htmlspecialchars($main['name']) ?>
+                        </a>
                     </li>
-                    <li><a href="<?php echo $root_path; ?>public/products.php?filter=new">New Arrivals</a></li>
-                    <li><a href="<?php echo $root_path; ?>public/sale.php">Sale</a></li>
-                    <li><a href="<?php echo $root_path; ?>public/products.php?filter=brands">Brands</a></li>
-                    <li><a href="<?php echo $root_path; ?>public/about.php">About Us</a></li>
-                    <li><a href="<?php echo $root_path; ?>public/contact.php">Contact</a></li>
-                </ul>
-            </nav>
+                <?php endforeach; ?>
+            </ul>
+        </li>
+        <li><a href="<?php echo $root_path; ?>public/new_arrivals.php">New Arrivals</a></li>
+        <li><a href="<?php echo $root_path; ?>public/sale.php">Sale</a></li>
+        <li><a href="<?php echo $root_path; ?>public/brands.php">Brands</a></li>
+        <li><a href="<?php echo $root_path; ?>public/about.php">About Us</a></li>
+        <li><a href="<?php echo $root_path; ?>public/contact.php">Contact</a></li>
+    </ul>
+</nav>
         </div>
     </header>
 

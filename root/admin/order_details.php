@@ -71,23 +71,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $notes = $_POST['notes'] ?? '';
         $refund_amount = $order['total_amount'];
 
-        $refund_id = generateNextId($pdo, 'refunds', 'refund_id', 'RF', 8);
+         $stmt = $pdo->prepare("SELECT * FROM refunds WHERE order_id = ?");
+        $stmt->execute([$order_id]);
+        $refund = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        // Insert refund record
-        $stmt = $pdo->prepare("
-            INSERT INTO refunds (refund_id, order_id, payment_id, refund_amount, refund_method, refund_status, processed_by, notes, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, 'approved', ?, ?, NOW(), NOW())
-        ");
-        $stmt->execute([
-            $refund_id,
-            $order_id,
-            $order['payment_id'],
-            $refund_amount,
-            $refund_method,
-            $_SESSION['admin_id'],
-            $notes
-        ]);
-
+        if ($refund) {
+            // Update existing refund to completed
+            $stmt = $pdo->prepare("
+                UPDATE refunds 
+                SET refund_status = 'completed',
+                    refund_method = ?,
+                    processed_by = ?,
+                    notes = ?,
+                    updated_at = NOW()
+                WHERE refund_id = ?
+            ");
+            $stmt->execute([
+                $refund_method,
+                $_SESSION['admin_id'],
+                $notes,
+                $refund['refund_id']
+            ]);
+        } else {
+            // Create a new refund record (if none exists)
+            $refund_id = generateNextId($pdo, 'refunds', 'refund_id', 'RF', 8);
+            $stmt = $pdo->prepare("
+                INSERT INTO refunds (refund_id, order_id, payment_id, refund_amount, refund_method, refund_status, processed_by, notes, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, 'completed', ?, ?, NOW(), NOW())
+            ");
+            $stmt->execute([
+                $refund_id,
+                $order_id,
+                $order['payment_id'],
+                $refund_amount,
+                $refund_method,
+                $_SESSION['admin_id'],
+                $notes
+            ]);
+        }
+        
         // Update order status → cancelled
         $stmt = $pdo->prepare("UPDATE orders SET order_status = 'cancelled', updated_at = NOW() WHERE order_id = ?");
         $stmt->execute([$order_id]);

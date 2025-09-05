@@ -5,9 +5,36 @@ session_start();
 $pdo = new PDO("mysql:host=localhost;dbname=web_db;charset=utf8mb4", "root", "");
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-// Get featured products
-$stmt = $pdo->query("SELECT * FROM products WHERE featured = 1 ");
-$featured_products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$featured_products_stmt = $pdo->prepare("SELECT * FROM products WHERE status = 'active' AND featured = 1 ORDER BY RAND() LIMIT 8");
+$featured_products_stmt->execute();
+$featured_products = $featured_products_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// New Arrivals (like new_arrivals.php)
+$new_arrivals_stmt = $pdo->prepare("SELECT * FROM products WHERE status = 'active' ORDER BY created_at DESC LIMIT 8");
+$new_arrivals_stmt->execute();
+$new_arrivals = $new_arrivals_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Sale Products (like sale.php)
+$sale_products_stmt = $pdo->prepare("SELECT * FROM products WHERE status = 'active' AND sale_price IS NOT NULL ORDER BY created_at DESC LIMIT 8");
+$sale_products_stmt->execute();
+$sale_products = $sale_products_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$new_arrival_product = !empty($new_arrivals) ? $new_arrivals[array_rand($new_arrivals)] : null;
+$sale_product = !empty($sale_products) ? $sale_products[array_rand($sale_products)] : null;
+
+$assets_path = 'assets'; // adjust if needed
+
+$reviews_stmt = $pdo->prepare("
+    SELECT r.review_id, r.title, r.comment, r.rating, r.created_at, u.username, u.profile_pic
+    FROM reviews r
+    JOIN user u ON r.user_id = u.user_id
+    WHERE r.status = 'pending'
+    ORDER BY r.created_at DESC
+    LIMIT 6
+");
+$reviews_stmt->execute();
+$reviews = $reviews_stmt->fetchAll(PDO::FETCH_ASSOC);
+$profile_base_path = 'assets/images/profile_pictures/';
 
 // Page variables
 $page_title = "Home";
@@ -251,31 +278,39 @@ include 'includes/header.php';
     </div>
 </section>
 
-<!-- Promotional Section -->
+<!-- Promotional Section (New Arrivals & Sale) -->
 <section class="promotional-section">
     <div class="container">
         <div class="promo-grid">
+            <!-- New Arrivals -->
             <div class="promo-card">
-                <div class="promo-content">
-                    <h2>New Arrivals</h2>
-                    <p>Check out the latest toys and games that just arrived</p>
-                    <a href="new-arrivals.php" class="btn btn-white">Shop New</a>
-                </div>
-                <div class="promo-image">
-                    <img src="assets/images/promo-new-arrivals.jpg" alt="New Arrivals">
-                </div>
-            </div>
-            
-            <div class="promo-card">
-                <div class="promo-content">
-                    <h2>Sale Items</h2>
-                    <p>Up to 50% off on selected toys and games</p>
-                    <a href="sale.php" class="btn btn-white">Shop Sale</a>
-                </div>
-                <div class="promo-image">
-                    <img src="assets/images/promo-sale.jpg" alt="Sale Items">
-                </div>
-            </div>
+    <div class="promo-content">
+        <h2>New Arrivals</h2>
+        <p>Check out the latest toys and games that just arrived</p>
+        <a href="public/new_arrivals.php" class="btn btn-white">Shop New</a>
+    </div>
+    <div class="promo-image">
+        <?php if ($new_arrival_product): ?>
+            <img src="<?= htmlspecialchars(str_replace("root/", "", $new_arrival_product['image'])) ?>" 
+                 alt="<?= htmlspecialchars($new_arrival_product['name']) ?>">
+        <?php endif; ?>
+    </div>
+</div>
+
+<!-- Sale Items -->
+<div class="promo-card">
+    <div class="promo-content">
+        <h2>Sale Items</h2>
+        <p>Up to 50% off on selected toys and games</p>
+        <a href="public/sale.php" class="btn btn-white">Shop Sale</a>
+    </div>
+    <div class="promo-image">
+        <?php if ($sale_product): ?>
+            <img src="<?= htmlspecialchars(str_replace("root/", "", $sale_product['image'])) ?>" 
+                 alt="<?= htmlspecialchars($sale_product['name']) ?>">
+        <?php endif; ?>
+    </div>
+</div> 
         </div>
     </div>
 </section>
@@ -289,44 +324,28 @@ include 'includes/header.php';
         </div>
         
         <div class="testimonials-grid">
-            <div class="testimonial-card">
-                <div class="testimonial-content">
-                    <p>"Amazing selection of educational toys. My kids love learning through play!"</p>
-                </div>
-                <div class="testimonial-author">
-                    <img src="assets/images/customer-1.jpg" alt="Sarah Johnson">
-                    <div class="author-info">
-                        <h4>Sarah Johnson</h4>
-                        <span>Verified Customer</span>
+            <?php foreach ($reviews as $review): ?>
+                <div class="testimonial-card">
+                    <div class="testimonial-content">
+                        <?php if ($review['title']): ?>
+                            <strong><?= htmlspecialchars($review['title']) ?></strong>
+                        <?php endif; ?>
+                        <p><?= htmlspecialchars($review['comment']) ?></p>
+                    </div>
+                    <div class="testimonial-author">
+                        <img src="<?= htmlspecialchars(!empty($review['profile_pic']) ? $profile_base_path . $review['profile_pic'] : 'assets/images/default-customer.jpg') ?>" 
+                             alt="<?= htmlspecialchars($review['username']) ?>">
+                        <div class="author-info">
+                            <h4><?= htmlspecialchars($review['username']) ?></h4>
+                            <div class="rating">
+                                <?php for ($i=1; $i<=5; $i++): ?>
+                                    <i class="fas fa-star <?= $i <= $review['rating'] ? 'filled' : '' ?>"></i>
+                                <?php endfor; ?>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            <div class="testimonial-card">
-                <div class="testimonial-content">
-                    <p>"Fast shipping and excellent customer service. Highly recommended!"</p>
-                </div>
-                <div class="testimonial-author">
-                    <img src="assets/images/customer-2.jpg" alt="Mike Davis">
-                    <div class="author-info">
-                        <h4>Mike Davis</h4>
-                        <span>Verified Customer</span>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="testimonial-card">
-                <div class="testimonial-content">
-                    <p>"Quality toys at great prices. Perfect for birthday gifts!"</p>
-                </div>
-                <div class="testimonial-author">
-                    <img src="assets/images/customer-3.jpg" alt="Lisa Chen">
-                    <div class="author-info">
-                        <h4>Lisa Chen</h4>
-                        <span>Verified Customer</span>
-                    </div>
-                </div>
-            </div>
+            <?php endforeach; ?>
         </div>
     </div>
 </section>

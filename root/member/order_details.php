@@ -40,7 +40,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'cance
             ]);
 
             $_SESSION['success_message'] = "Your cancellation request has been submitted.";
+            
+            // Re-fetch order to show updated status
+            $stmt = $pdo->prepare("SELECT * FROM orders WHERE order_id = ? AND user_id = ?");
+            $stmt->execute([$order_id, $user_id]);
+            $order = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            // Fetch updated refund info
+            $stmt = $pdo->prepare("SELECT * FROM refunds WHERE order_id = ?");
+            $stmt->execute([$order_id]);
+            $refund = $stmt->fetch(PDO::FETCH_ASSOC);
         } else {
+
             $_SESSION['error_message'] = "Only pending orders can be cancelled.";
         }
 
@@ -79,11 +90,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'mark_
 
 $refund = null; // default value
 
-// Optionally, fetch refund info from database if it exists
-$stmt = $pdo->prepare("SELECT * FROM refunds WHERE order_id = ?");
+// Fetch the latest refund info for this order
+$stmt = $pdo->prepare("
+    SELECT r.*, u.username AS admin_name
+    FROM refunds r
+    LEFT JOIN user u ON r.processed_by = u.user_id
+    WHERE r.order_id = ?
+    ORDER BY r.created_at DESC
+    LIMIT 1
+");
 $stmt->execute([$order_id]);
 $refund = $stmt->fetch(PDO::FETCH_ASSOC);
-
 
 // Get order details
 $stmt = $pdo->prepare("
@@ -190,7 +207,7 @@ include '../includes/header.php';
                         'shipped' => ['icon' => 'fas fa-truck', 'title' => 'Shipped', 'desc' => 'Order has been shipped'],
                         'delivered' => ['icon' => 'fas fa-check-circle', 'title' => 'Delivered', 'desc' => 'Order has been delivered'],
                         'cancel_requested' => ['icon' => 'fas fa-hourglass-half', 'title' => 'Cancellation Requested', 'desc' => 'Awaiting admin approval'],
-                        'cancelled' => ['icon' => 'fas fa-times-circle', 'title' => 'Cancelled', 'desc' => 'Order was cancelled']
+                        'cancelled' => ['icon' => 'fas fa-times-circle', 'title' => 'Cancelled', 'desc' => 'Order was cancelled and refunded']
                     ];
                     
                     $current_status = $order['order_status'];
@@ -366,12 +383,23 @@ include '../includes/header.php';
     <?php if($refund): ?>
         <div class="refund-info-card">
             <h3>Refund Information</h3>
-            <p>Status: <?= htmlspecialchars($refund['refund_status']) ?></p>
+            <div class="refund-details">
+            <p>Status:
+                <span class="refund-status <?= $refund['refund_status'] ?>">
+                    <?= ucfirst($refund['refund_status']) ?>
+                </span>
+            </p>
             <p>Amount: RM<?= number_format($refund['refund_amount'],2) ?></p>
             <p>Requested: <?= date('M j, Y g:i A', strtotime($refund['created_at'])) ?></p>
-        </div>
-    <?php endif; ?>
-   </div>
+        <?php if ($refund['updated_at']): ?>
+            <p><strong>Last Updated:</strong> <?= date('M j, Y g:i A', strtotime($refund['updated_at'])) ?></p>
+        <?php endif; ?>
+        <?php if (!empty($refund['admin_notes'])): ?>
+            <p><strong>Admin Notes:</strong> <?= htmlspecialchars($refund['admin_notes']) ?></p>
+        <?php endif; ?>
+    </div>
+</div>
+<?php endif; ?>
 </section>
 
 <?php if ($order['order_status'] === 'pending'): ?>

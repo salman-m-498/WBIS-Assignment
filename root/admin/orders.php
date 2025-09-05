@@ -10,60 +10,102 @@ if (!isset($_SESSION['admin_id']) || $_SESSION['admin_role'] !== 'admin') {
 // Handle order status updates
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     try {
+        $valid_statuses = ['pending', 'processing', 'shipped', 'delivered', 'cancel_requested', 'cancelled'];
+
         if ($_POST['action'] === 'update_status') {
-            $order_ids = $_POST['order_ids'] ?? [];
-            
-            // Handle single order update
-            if (isset($_POST['order_id']) && !empty($_POST['order_id'])) {
-                $order_ids = [$_POST['order_id']];
-            }
-            
-            // Ensure $order_ids is always an array
-            if (!is_array($order_ids)) {
-                $order_ids = [$order_ids];
+           // ---------- SINGLE ORDER UPDATE ----------
+            $order_id = $_POST['order_id'] ?? null;
+            $new_status = $_POST['new_status'] ?? '';
+
+            if (empty($order_id) || !in_array($new_status, $valid_statuses)) {
+                throw new Exception("Invalid order update request");
             }
 
-            // Handle comma-separated string (from shipping modal)
-            if (count($order_ids) === 1 && is_string($order_ids[0]) && strpos($order_ids[0], ',') !== false) {
-                $order_ids = explode(',', $order_ids[0]);
-            }
-            
-            // Clean up any empty values and trim whitespace
-            $order_ids = array_filter(array_map('trim', $order_ids));
-
-            $new_status = $_POST['new_status'];
-            $valid_statuses = ['pending', 'processing', 'shipped', 'delivered', 'cancel_requested', 'cancelled'];
-            if (!in_array($new_status, $valid_statuses)) {
-                throw new Exception("Invalid status");
-            }
-
-            if (empty($order_ids)) {
-                throw new Exception("No orders selected");
-            }
-
-            // For shipped, require courier + tracking
-            $courier = $_POST['courier'] ?? null;
-            $tracking = $_POST['tracking_number'] ?? null;
             if ($new_status === 'shipped') {
+                $courier = trim($_POST['courier'] ?? '');
+                $tracking = trim($_POST['tracking_number'] ?? '');
                 if (empty($courier) || empty($tracking)) {
                     throw new Exception("Courier and tracking number are required for shipped orders");
                 }
+
+                $stmt = $pdo->prepare("
+                    UPDATE orders 
+                    SET order_status = ?, shipping_courier = ?, tracking_number = ?, updated_at = NOW()
+                    WHERE order_id = ?
+                ");
+                $stmt->execute([$new_status, $courier, $tracking, $order_id]);
+            } else {
+                $stmt = $pdo->prepare("
+                    UPDATE orders 
+                    SET order_status = ?, updated_at = NOW()
+                    WHERE order_id = ?
+                ");
+                $stmt->execute([$new_status, $order_id]);
             }
 
+            $_SESSION['success_message'] = "Order #$order_id updated successfully";
+        }
+
+        elseif ($_POST['action'] === 'bulk_update') {
+            // ---------- BULK UPDATE (true multi-order) ----------
+            $order_ids = $_POST['order_ids'] ?? [];
+            $new_status = $_POST['bulk_status'] ?? $_POST['new_status'] ?? '';
+
+            if (empty($order_ids) || !in_array($new_status, $valid_statuses)) {
+                throw new Exception("Please select orders and a valid status");
+            }
+
+            // Protect shipped orders
             $placeholders = str_repeat('?,', count($order_ids) - 1) . '?';
+            $status_check = $pdo->prepare("SELECT order_id, order_status FROM orders WHERE order_id IN ($placeholders)");
+            $status_check->execute($order_ids);
+            foreach ($status_check->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                if (in_array($new_status, ['pending','processing']) && $row['order_status'] === 'shipped') {
+                    throw new Exception("Order ID {$row['order_id']} is already shipped and cannot be changed back.");
+                }
+            }
 
             if ($new_status === 'shipped') {
-                // Update with shipping info
-                $stmt = $pdo->prepare("
-                    UPDATE orders
-                    SET order_status = ?, shipping_courier = ?, tracking_number = ?, updated_at = NOW()
-                    WHERE order_id IN ($placeholders)
-                ");
-                $stmt->execute(array_merge([$new_status, $courier, $tracking], $order_ids));
+                $bulk_type = $_POST['bulk_shipping_type'] ?? 'same';
+
+                if ($bulk_type === 'same') {
+                    // same courier + tracking
+                    $courier = trim($_POST['courier'] ?? '');
+                    $tracking = trim($_POST['tracking_number'] ?? '');
+                    if (empty($courier) || empty($tracking)) {
+                        throw new Exception("Courier and tracking number are required");
+                    }
+
+                    $stmt = $pdo->prepare("
+                        UPDATE orders
+                        SET order_status = ?, shipping_courier = ?, tracking_number = ?, updated_at = NOW()
+                        WHERE order_id IN ($placeholders)
+                    ");
+                    $stmt->execute(array_merge([$new_status, $courier, $tracking], $order_ids));
+
+                } else {
+                    // individual shipping
+                    $pdo->beginTransaction();
+                    $stmt = $pdo->prepare("
+                        UPDATE orders
+                        SET order_status = ?, shipping_courier = ?, tracking_number = ?, updated_at = NOW()
+                        WHERE order_id = ?
+                    ");
+
+                    foreach ($order_ids as $id) {
+                        $courier = trim($_POST['individual_courier'][$id] ?? '');
+                        $tracking = trim($_POST['individual_tracking'][$id] ?? '');
+                        if (empty($courier) || empty($tracking)) {
+                            throw new Exception("Missing courier/tracking for order $id");
+                        }
+                        $stmt->execute([$new_status, $courier, $tracking, $id]);
+                    }
+                    $pdo->commit();
+                }
             } else {
-                // Normal status update
+                // bulk non-shipped
                 $stmt = $pdo->prepare("
-                    UPDATE orders
+                    UPDATE orders 
                     SET order_status = ?, updated_at = NOW()
                     WHERE order_id IN ($placeholders)
                 ");
@@ -72,139 +114,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
             $_SESSION['success_message'] = count($order_ids) . " order(s) updated successfully";
         }
-        elseif ($_POST['action'] === 'bulk_update') {
-            // Handle bulk update
-            $order_ids = $_POST['order_ids'] ?? [];
-            $new_status = $_POST['bulk_status'] ?? '';
-
-            $placeholders = str_repeat('?,', count($order_ids) - 1) . '?';
-            $status_check_stmt = $pdo->prepare("SELECT order_id, order_status FROM orders WHERE order_id IN ($placeholders)");
-            $status_check_stmt->execute($order_ids);
-            $current_statuses = $status_check_stmt->fetchAll(PDO::FETCH_ASSOC);
-
-            // Prevent shipped orders from reverting to pending/processing
-            if (in_array($new_status, ['pending', 'processing'])) {
-                foreach ($current_statuses as $row) {
-                    if ($row['order_status'] === 'shipped') {
-                        throw new Exception("Order ID {$row['order_id']} is already shipped and cannot be changed back to {$new_status}.");
-                    }
-                }
-            }
-            
-            // Ensure $order_ids is always an array
-            if (!is_array($order_ids)) {
-                $order_ids = [$order_ids];
-            }
-            
-            // Handle comma-separated order IDs
-            if (count($order_ids) === 1 && is_string($order_ids[0]) && strpos($order_ids[0], ',') !== false) {
-                $order_ids = explode(',', $order_ids[0]);
-            }
-            
-            // Clean up any empty values and trim whitespace
-            $order_ids = array_filter(array_map('trim', $order_ids));
-
-            if (empty($order_ids) || empty($new_status)) {
-                throw new Exception("Please select orders and a status");
-            }
-
-            $valid_statuses = ['pending', 'processing', 'shipped', 'delivered', 'cancel_requested', 'cancelled'];
-            if (!in_array($new_status, $valid_statuses)) {
-                throw new Exception("Invalid status");
-            }
-
-            // Special handling for bulk shipped orders
-            if ($new_status === 'shipped') {
-                $bulk_shipping_type = $_POST['bulk_shipping_type'] ?? 'same';
-                
-                if ($bulk_shipping_type === 'same') {
-                    // Same courier and tracking for all orders
-                    $courier = $_POST['courier'] ?? null;
-                    $tracking = $_POST['tracking_number'] ?? null;
-                    
-                    if (empty($courier) || empty($tracking)) {
-                        throw new Exception("Courier and tracking number are required for shipped orders");
-                    }
-                    
-                    $placeholders = str_repeat('?,', count($order_ids) - 1) . '?';
-                    $stmt = $pdo->prepare("
-                        UPDATE orders
-                        SET order_status = ?, shipping_courier = ?, tracking_number = ?, updated_at = NOW()
-                        WHERE order_id IN ($placeholders)
-                    ");
-                    $stmt->execute(array_merge([$new_status, $courier, $tracking], $order_ids));
-
-                    $_SESSION['success_message'] = count($order_ids) . " order(s) updated successfully with same courier and tracking";
-                } else {
-                    // Individual courier and tracking for each order
-                    $individual_courier = $_POST['individual_courier'] ?? [];
-                    $individual_tracking = $_POST['individual_tracking'] ?? [];
-                    
-                    if (empty($individual_courier) || empty($individual_tracking)) {
-                        throw new Exception("Individual shipping information is required for all orders");
-                    }
-                    
-                    // Begin transaction for individual updates
-                    $pdo->beginTransaction();
-                    
-                    try {
-                        $stmt = $pdo->prepare("
-                            UPDATE orders
-                            SET order_status = ?, shipping_courier = ?, tracking_number = ?, updated_at = NOW()
-                            WHERE order_id = ?
-                        ");
-                        
-                        $updated_count = 0;
-                        foreach ($order_ids as $order_id) {
-                            $order_id = trim($order_id);
-                            
-                            // Check if we have shipping info for this order
-                            if (!isset($individual_courier[$order_id]) || !isset($individual_tracking[$order_id])) {
-                                throw new Exception("Missing shipping information for order ID: $order_id");
-                            }
-                            
-                            $courier = trim($individual_courier[$order_id]);
-                            $tracking = trim($individual_tracking[$order_id]);
-                            
-                            if (empty($courier) || empty($tracking)) {
-                                throw new Exception("Courier and tracking number cannot be empty for order ID: $order_id");
-                            }
-                            
-                            $stmt->execute([$new_status, $courier, $tracking, $order_id]);
-                            $updated_count++;
-                        }
-                        
-                        $pdo->commit();
-                        $_SESSION['success_message'] = "$updated_count order(s) updated successfully with individual shipping information";
-                        
-                    } catch (Exception $e) {
-                        $pdo->rollBack();
-                        throw $e;
-                    }
-                }
-            } else {
-                // Normal bulk status update (non-shipped)
-                $placeholders = str_repeat('?,', count($order_ids) - 1) . '?';
-                $stmt = $pdo->prepare("
-                    UPDATE orders
-                    SET order_status = ?, updated_at = NOW()
-                    WHERE order_id IN ($placeholders)
-                ");
-                $stmt->execute(array_merge([$new_status], $order_ids));
-                $_SESSION['success_message'] = count($order_ids) . " order(s) updated successfully";
-            }
-        }
     } catch (Exception $e) {
         $_SESSION['error_message'] = $e->getMessage();
-        
-        // Log the error for debugging
         error_log("Order update error: " . $e->getMessage());
-        if (isset($pdo) && $pdo->inTransaction()) {
-            $pdo->rollBack();
-        }
+        if (isset($pdo) && $pdo->inTransaction()) $pdo->rollBack();
     }
 
-    header('Location: orders.php');
+    header("Location: orders.php");
     exit;
 }
 
@@ -598,9 +514,8 @@ include '../includes/header.php';
                     <h3>Enter Shipping Information</h3>
                     <form id="shipping-form" method="POST">
                         <input type="hidden" name="action" id="shipping-action" value="update_status">
-                        <input type="hidden" name="order_ids" id="shipping-order-ids">
+                        <input type="hidden" name="order_id" id="shipping-order-id">
                         <input type="hidden" name="new_status" value="shipped">
-                        <input type="hidden" name="bulk_status" value="shipped">
                         
                         <!-- Bulk shipping options will be injected here dynamically -->
       <div class="form-group" id="default-courier-group">
@@ -878,14 +793,10 @@ function openShippingModal(orderIds, isBulk = false) {
 }
 
 function cleanupModalForm(form) {
-    // Remove any previous dynamic inputs
-    form.querySelectorAll('input[name="order_ids[]"]').forEach(input => {
-        if (input.id !== 'shipping-order-ids') {
-            input.remove();
-        }
-    });
-    
-    // Remove bulk options
+    // Remove any previous dynamic order_ids inputs inserted into this form
+    form.querySelectorAll('input[name="order_ids[]"]').forEach(input => input.remove());
+
+    // Remove bulk options (if present)
     const existingBulkOptions = document.getElementById('bulk-shipping-options');
     if (existingBulkOptions) {
         existingBulkOptions.remove();
@@ -894,19 +805,29 @@ function cleanupModalForm(form) {
 
 function setupModalForType(form, orderIds, isBulk) {
     const actionInput = document.getElementById('shipping-action');
-    const orderIdsInput = document.getElementById('shipping-order-ids');
+    const orderIdInput = document.getElementById('shipping-order-id');
     const modal = document.getElementById('shipping-modal');
-    
-    if (isBulk) {0
+
+    if (isBulk && orderIds.length > 1) {
+        // true bulk update
         actionInput.value = 'bulk_update';
-        orderIdsInput.name = 'order_ids';
-        orderIdsInput.value = orderIds.join(',');
+
+        // Insert hidden inputs for all order_ids[] into the shipping form so PHP receives them
+        orderIds.forEach(id => {
+            const hidden = document.createElement('input');
+            hidden.type = 'hidden';
+            hidden.name = 'order_ids[]';
+            hidden.value = id;
+            form.appendChild(hidden);
+        });
+
         modal.querySelector('h3').textContent = `Enter Shipping Information (${orderIds.length} orders)`;
         showBulkShippingOptions(form, orderIds);
+
     } else {
+        // single order -> keep update_status flow
         actionInput.value = 'update_status';
-        orderIdsInput.name = 'order_ids';
-        orderIdsInput.value = orderIds[0];
+        orderIdInput.value = orderIds[0] ?? ''; // safe fallback if undefined
         modal.querySelector('h3').textContent = 'Enter Shipping Information';
     }
 }

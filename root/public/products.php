@@ -26,28 +26,78 @@ $breadcrumb_items = [
 // Get filter parameters
 $category = isset($_GET['category']) ? $_GET['category'] : '';
 $sort = isset($_GET['sort']) ? $_GET['sort'] : 'name';
-$price_min = isset($_GET['price_min']) ? $_GET['price_min'] : '';
-$price_max = isset($_GET['price_max']) ? $_GET['price_max'] : '';
-$age_group = isset($_GET['age_group']) ? $_GET['age_group'] : '';
-$brand = isset($_GET['brand']) ? $_GET['brand'] : '';
-$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-$per_page = 12;
+$price_range = isset($_GET['price_range']) ? $_GET['price_range'] : '';
+$price_min = '';
+$price_max = '';
 
+$page =  max(1, (int)($_GET['page'] ?? 1));
+$per_page = 24;
+$offset = ($page - 1) * $per_page;
+
+$where = ["status = 'active'"];
+$params = [];
+
+if ($category) {
+    // Check if selected category has subcategories
+    $subQuery = $pdo->prepare("SELECT category_id FROM categories WHERE parent_id = ?");
+    $subQuery->execute([$category]);
+    $children = $subQuery->fetchAll(PDO::FETCH_COLUMN);
+
+    if ($children) {
+        // If category has children, filter by all child category_ids
+        $placeholders = implode(',', array_fill(0, count($children), '?'));
+        $where[] = "category_id IN ($placeholders)";
+        $params = array_merge($params, $children);
+    } else {
+        // Otherwise, filter directly
+        $where[] = "category_id = ?";
+        $params[] = $category;
+    }
+}
+if ($price_range) {
+     if (strpos($price_range, '+') !== false) {
+        // e.g. "1000+"
+        $min = (int) rtrim($price_range, '+');
+        $where[] = "sale_price >= ?";
+        $params[] = $min;
+        $price_min = (string)$min;
+        $price_max = '';
+    } else {
+        // standard "min-max"
+        [$min, $max] = explode('-', $price_range);
+        $min = (int)$min;
+        $max = (int)$max;
+        $where[] = "sale_price BETWEEN ? AND ?";
+        $params[] = $min;
+        $params[] = $max;
+        $price_min = (string)$min;
+        $price_max = (string)$max;
+    }
+}
+$where_sql = implode(" AND ", $where);
+
+// Sorting
+$sort_sql = match($sort) {
+    "price_asc" => "sale_price ASC",
+    "price_desc" => "sale_price DESC",
+    default => "name ASC"
+};
+
+// Count total
+$count_stmt = $pdo->prepare("SELECT COUNT(*) FROM products WHERE $where_sql");
+$count_stmt->execute($params);
+$total_products = $count_stmt->fetchColumn();
+$total_pages = ceil($total_products / $per_page);
+
+// Fetch products
+$per_page = (int)$per_page;
+$offset = (int)$offset;
+
+$sql = "SELECT * FROM products WHERE $where_sql ORDER BY $sort_sql LIMIT $per_page OFFSET $offset";
+$stmt = $pdo->prepare($sql);
+$stmt->execute($params);
+$products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
-
-<!-- ✅ Flash message container -->
-    <div id="flash-message"
-         style="display:none;
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                min-width: 200px;
-                padding: 12px 18px;
-                border-radius: 8px;
-                font-size: 14px;
-                z-index: 9999;
-                box-shadow: 0 4px 8px #000;">
-    </div>
 
 <?php include '../includes/header.php'; ?>
 
@@ -59,10 +109,19 @@ $per_page = 12;
     </div>
 </section>
 
+<!-- Filter Toggle Button -->
+<div class="filter-toggle-wrapper">
+    <button type="button" class="filter-toggle">☰ Filters</button>
+</div>
+<div class="sidebar-overlay"></div>
+
+
 <!-- Products Section -->
 <section class="products-section">
     <div class="container">
         <div class="products-layout">
+
+            <!-- Main Products Content -->
              <main class="products-content">
                 <div class="products-header">
                     <h2>All Products</h2>
@@ -73,7 +132,6 @@ $per_page = 12;
                             $image_path = str_replace("root/", "", $product['image']);
                             $product_url = "product.php?id=" . urlencode($product['product_id']);
                         ?>
-
                         <?php
                         $isIn = false;
                         if (isset($_SESSION['user_id'])) {
@@ -110,177 +168,75 @@ $per_page = 12;
                     </div>
                     <?php endforeach; ?>
                 </div>
-            </main>
-        </div>
-        <div>
+
+            <!-- Pagination -->
+            <div class="pagination">
+                <ul class="pagination-list">
+                    <?php if ($page > 1): ?>
+                        <li><a href="?<?= http_build_query(array_merge($_GET, ['page'=>1])) ?>">First</a></li>
+                        <li><a href="?<?= http_build_query(array_merge($_GET, ['page'=>$page-1])) ?>">Prev</a></li>
+                    <?php endif; ?>
+
+                    <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                        <li><a class="<?= $page==$i?'active':'' ?>" href="?<?= http_build_query(array_merge($_GET, ['page'=>$i])) ?>"><?= $i ?></a></li>
+                    <?php endfor; ?>
+
+                    <?php if ($page < $total_pages): ?>
+                        <li><a href="?<?= http_build_query(array_merge($_GET, ['page'=>$page+1])) ?>">Next</a></li>
+                        <li><a href="?<?= http_build_query(array_merge($_GET, ['page'=>$total_pages])) ?>">Last</a></li>
+                    <?php endif; ?>
+                </ul>
+            </div>
+        </main>
+        
             <!-- Sidebar Filters -->
             <aside class="products-sidebar">
-                <div class="filter-section">
+                <form method="get" id="filterForm">
+                    <div class="filter-section">
                     <h3>Filters</h3>
+
+                    <!-- Preserve current sort and reset to page 1 when applying filters -->
+                    <input type="hidden" name="page" value="1">
+                    <input type="hidden" name="sort" value="<?= htmlspecialchars($sort) ?>">
                     
                     <!-- Category Filter -->
                     <div class="filter-group">
                         <h4>Category</h4>
                         <ul class="filter-list">
-                            <li>
-                                <label>
-                                    <input type="checkbox" name="category" value="action-figures" <?php echo ($category == 'action-figures') ? 'checked' : ''; ?>>
-                                    Action Figures
-                                </label>
-                            </li>
-                            <li>
-                                <label>
-                                    <input type="checkbox" name="category" value="board-games" <?php echo ($category == 'board-games') ? 'checked' : ''; ?>>
-                                    Board Games
-                                </label>
-                            </li>
-                            <li>
-                                <label>
-                                    <input type="checkbox" name="category" value="educational" <?php echo ($category == 'educational') ? 'checked' : ''; ?>>
-                                    Educational Toys
-                                </label>
-                            </li>
-                            <li>
-                                <label>
-                                    <input type="checkbox" name="category" value="outdoor" <?php echo ($category == 'outdoor') ? 'checked' : ''; ?>>
-                                    Outdoor Toys
-                                </label>
-                            </li>
-                            <li>
-                                <label>
-                                    <input type="checkbox" name="category" value="arts-crafts" <?php echo ($category == 'arts-crafts') ? 'checked' : ''; ?>>
-                                    Arts & Crafts
-                                </label>
-                            </li>
-                            <li>
-                                <label>
-                                    <input type="checkbox" name="category" value="babies-toddlers" <?php echo ($category == 'babies-toddlers') ? 'checked' : ''; ?>>
-                                    Babies & Toddlers
-                                </label>
-                            </li>
+                            <li><label><input type="radio" name="category" value="C001" <?= $category=="C001"?"checked":"" ?>> Action Figures</label></li>
+                            <li><label><input type="radio" name="category" value="C002" <?= $category=="C002"?"checked":"" ?>> Building Blocks</label></li>
+                            <li><label><input type="radio" name="category" value="C003" <?= $category=="C003"?"checked":"" ?>> Cars, Trucks, Trains</label></li>
+                            <li><label><input type="radio" name="category" value="C004" <?= $category=="C004"?"checked":"" ?>> Dolls</label></li>
+                            <li><label><input type="radio" name="category" value="C005" <?= $category=="C005"?"checked":"" ?>> Games & Puzzles</label></li>
+                            <li><label><input type="radio" name="category" value="C006" <?= $category=="C006"?"checked":"" ?>> Outdoor & Sports</label></li>
+                            <li><label><input type="radio" name="category" value="C007" <?= $category=="C007"?"checked":"" ?>> Pretend Play & Costumes</label></li>
+                            <li><label><input type="radio" name="category" value="C008" <?= $category=="C008"?"checked":"" ?>> Blind Box</label></li>
+                            <li><label><input type="radio" name="category" value="C009" <?= $category=="C009"?"checked":"" ?>> Soft Toys</label></li>
+                            <li><label><input type="radio" name="category" value="" <?= $category==''?"checked":"" ?>> Any Category</label></li>
                         </ul>
                     </div>
                     
                     <!-- Price Filter -->
-                    <div class="filter-group">
+                   <div class="filter-group">
                         <h4>Price Range</h4>
-                        <div class="price-range">
-                            <input type="number" name="price_min" placeholder="Min" value="<?php echo $price_min; ?>">
-                            <span>to</span>
-                            <input type="number" name="price_max" placeholder="Max" value="<?php echo $price_max; ?>">
-                        </div>
-                    </div>
-                    
-                    <!-- Age Group Filter -->
-                    <div class="filter-group">
-                        <h4>Age Group</h4>
                         <ul class="filter-list">
-                            <li>
-                                <label>
-                                    <input type="checkbox" name="age_group" value="0-2" <?php echo ($age_group == '0-2') ? 'checked' : ''; ?>>
-                                    0-2 years
-                                </label>
-                            </li>
-                            <li>
-                                <label>
-                                    <input type="checkbox" name="age_group" value="3-5" <?php echo ($age_group == '3-5') ? 'checked' : ''; ?>>
-                                    3-5 years
-                                </label>
-                            </li>
-                            <li>
-                                <label>
-                                    <input type="checkbox" name="age_group" value="6-8" <?php echo ($age_group == '6-8') ? 'checked' : ''; ?>>
-                                    6-8 years
-                                </label>
-                            </li>
-                            <li>
-                                <label>
-                                    <input type="checkbox" name="age_group" value="9-12" <?php echo ($age_group == '9-12') ? 'checked' : ''; ?>>
-                                    9-12 years
-                                </label>
-                            </li>
-                            <li>
-                                <label>
-                                    <input type="checkbox" name="age_group" value="13+" <?php echo ($age_group == '13+') ? 'checked' : ''; ?>>
-                                    13+ years
-                                </label>
-                            </li>
+                            <li><label><input type="radio" name="price_range" value="0-100" <?= $price_range=="0-100"?"checked":"" ?>> RM0 - RM100</label></li>
+                            <li><label><input type="radio" name="price_range" value="100-200" <?= $price_range=="100-200"?"checked":"" ?>> RM100 - RM200</label></li>
+                            <li><label><input type="radio" name="price_range" value="200-500" <?= $price_range=="200-500"?"checked":"" ?>> RM200 - RM500</label></li>
+                            <li><label><input type="radio" name="price_range" value="500-1000" <?= $price_range=="500-1000"?"checked":"" ?>> RM500 - RM1000</label></li>
+                            <li><label><input type="radio" name="price_range" value="" <?= $price_range=='' ? "checked" : "" ?>> Any Price</label></li>
                         </ul>
                     </div>
                     
-                    <!-- Brand Filter -->
-                    <div class="filter-group">
-                        <h4>Brand</h4>
-                        <ul class="filter-list">
-                            <li>
-                                <label>
-                                    <input type="checkbox" name="brand" value="lego" <?php echo ($brand == 'lego') ? 'checked' : ''; ?>>
-                                    LEGO
-                                </label>
-                            </li>
-                            <li>
-                                <label>
-                                    <input type="checkbox" name="brand" value="hasbro" <?php echo ($brand == 'hasbro') ? 'checked' : ''; ?>>
-                                    Hasbro
-                                </label>
-                            </li>
-                            <li>
-                                <label>
-                                    <input type="checkbox" name="brand" value="mattel" <?php echo ($brand == 'mattel') ? 'checked' : ''; ?>>
-                                    Mattel
-                                </label>
-                            </li>
-                            <li>
-                                <label>
-                                    <input type="checkbox" name="brand" value="fisher-price" <?php echo ($brand == 'fisher-price') ? 'checked' : ''; ?>>
-                                    Fisher-Price
-                                </label>
-                            </li>
-                            <li>
-                                <label>
-                                    <input type="checkbox" name="brand" value="melissa-doug" <?php echo ($brand == 'melissa-doug') ? 'checked' : ''; ?>>
-                                    Melissa & Doug
-                                </label>
-                            </li>
-                        </ul>
-                    </div>
-                    
-                    <!-- Clear Filters -->
-                    <button class="btn btn-outline clear-filters">Clear All Filters</button>
-                </div>
-            </aside>
             
-                
-                <!-- Pagination -->
-                <div class="pagination">
-                    <ul class="pagination-list">
-                        <li class="pagination-item">
-                            <a href="?page=1" class="pagination-link">First</a>
-                        </li>
-                        <li class="pagination-item">
-                            <a href="?page=<?php echo $page - 1; ?>" class="pagination-link <?php echo ($page <= 1) ? 'disabled' : ''; ?>">Previous</a>
-                        </li>
-                        <li class="pagination-item">
-                            <a href="?page=1" class="pagination-link <?php echo ($page == 1) ? 'active' : ''; ?>">1</a>
-                        </li>
-                        <li class="pagination-item">
-                            <a href="?page=2" class="pagination-link <?php echo ($page == 2) ? 'active' : ''; ?>">2</a>
-                        </li>
-                        <li class="pagination-item">
-                            <a href="?page=3" class="pagination-link <?php echo ($page == 3) ? 'active' : ''; ?>">3</a>
-                        </li>
-                        <li class="pagination-item">
-                            <a href="?page=4" class="pagination-link <?php echo ($page == 4) ? 'active' : ''; ?>">4</a>
-                        </li>
-                        <li class="pagination-item">
-                            <a href="?page=<?php echo $page + 1; ?>" class="pagination-link <?php echo ($page >= 4) ? 'disabled' : ''; ?>">Next</a>
-                        </li>
-                        <li class="pagination-item">
-                            <a href="?page=4" class="pagination-link">Last</a>
-                        </li>
-                    </ul>
+                    <!-- Filter actions -->
+                    <div class="filter-actions" style="margin-top:1em; display:flex; gap:10px;">
+                        <button type="submit" class="btn btn-primary apply-filters">Apply Filters</button>
+                        <button type="button" class="btn btn-outline clear-filters">Clear All Filters</button>
+                    </div>
                 </div>
-            </main>
+            </form>
+            </aside>
         </div>
     </div>
 </section>
@@ -345,11 +301,54 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
     });
+
+     // ===== Sidebar Toggle =====
+    const toggleBtn = document.querySelector('.filter-toggle');
+    const sidebar = document.querySelector('.products-sidebar');
+    const overlay = document.querySelector('.sidebar-overlay');
+
+    if (toggleBtn && sidebar && overlay) {
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.add('active');
+            overlay.classList.add('active');
+        });
+
+        overlay.addEventListener('click', () => {
+            sidebar.classList.remove('active');
+            overlay.classList.remove('active');
+        });
+    }
+
+    // ===== Filter form submit: close drawer (and let GET submit happen) =====
+    const filterForm = document.getElementById('filterForm');
+    if (filterForm) {
+        filterForm.addEventListener('submit', () => {
+            if (sidebar && overlay) {
+                sidebar.classList.remove('active');
+                overlay.classList.remove('active');
+            }
+            // allow normal GET submission to proceed
+        });
+    }
+
+    // ===== Clear All Filters button =====
+    const clearBtn = document.querySelector('.clear-filters');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            // close the sidebar first for immediate UX feedback
+            if (sidebar && overlay) {
+                sidebar.classList.remove('active');
+                overlay.classList.remove('active');
+            }
+            // redirect to base products page (clears all GET params)
+            window.location.href = 'products.php';
+        });
+    }
 });
 </script>
 
 <script src="/assets/js/cart.js"></script>
-
 
 <?php
 // Include footer
