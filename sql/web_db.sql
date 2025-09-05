@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 04, 2025 at 12:14 AM
+-- Generation Time: Sep 05, 2025 at 02:14 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -169,6 +169,28 @@ CREATE TABLE `order_items` (
 INSERT INTO `order_items` (`order_id`, `product_id`, `quantity`, `unit_price`, `total_price`, `created_at`, `updated_at`) VALUES
 ('ORD0000001', 'P026', 1, 49.90, 49.90, '2025-09-03 19:29:55', '2025-09-03 19:29:55'),
 ('ORD0000002', 'P033', 1, 59.90, 59.90, '2025-09-03 19:38:29', '2025-09-03 19:38:29');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `password_resets`
+--
+
+CREATE TABLE `password_resets` (
+  `reset_id` varchar(11) NOT NULL,
+  `user_id` varchar(11) NOT NULL,
+  `token` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `expires_at` datetime NOT NULL,
+  `used` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+-- Dumping data for table `password_resets`
+--
+
+INSERT INTO `password_resets` (`reset_id`, `user_id`, `token`, `expires_at`, `used`, `created_at`) VALUES
+('R00001', 'USR41317469', '2d4ee69a31c35e8204e998eae72ef3f5d0466fc08e924ae2b163c8cbd48f8bd7', '2025-09-05 09:11:26', 1, '2025-09-05 00:11:26');
 
 -- --------------------------------------------------------
 
@@ -533,9 +555,13 @@ CREATE TABLE `user` (
 
 INSERT INTO `user` (`user_id`, `username`, `email`, `password`, `role`, `status`, `profile_pic`, `remember_token`, `created_at`, `updated_at`) VALUES
 ('USR00000001', 'admin', 'admin@toylandstore.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', 'active', NULL, NULL, '2025-08-02 16:04:16', '2025-08-02 16:04:16'),
+('USR29610301', 'jim_chan', 'jimchan1234@gmail.com', '$2y$10$CR.MqRTNhvJd8oprtJ02de4X877qVhekZzFxHQ9eYpqh7xktOqJeC', 'member', 'active', NULL, NULL, '2025-09-04 11:11:30', '2025-09-04 11:11:30'),
+('USR41317469', 'kim_lee', 'step724mak@gmail.com', '$2y$10$v6rwCjKSByjo48EEnJ2r1epxNRQRP0bVJFWTQxDzOqyfOMlY8jU/y', 'member', 'active', NULL, NULL, '2025-09-04 21:21:37', '2025-09-05 00:12:06'),
+('USR60592591', 'ling_tan', 'lingtan1234@gmail.com', '$2y$10$4sciL76pbSCY8IPW.Ur8zOEIY5Hukb1i.tli.XuqTHKqzq8sQTAK6', 'member', 'active', NULL, NULL, '2025-09-04 11:37:49', '2025-09-04 11:37:49'),
 ('USR63982070', 'admin1', 'admin@toyland.com', '$2y$10$sW4MNThEw1W5l0S6rz/GG.N0rA/A7oCMVgRCy/Hy9cFHU8MaO1wla', 'admin', 'active', NULL, NULL, '2025-08-17 18:05:07', '2025-08-17 18:05:07'),
 ('USR79561298', 'john_lee', 'john123@gmail.com', '$2y$10$0C0XESVrB0KhW5mN55FRve9PnYeFiqXWmvY8jGZJPqKe4sPtuARpO', 'member', 'active', NULL, NULL, '2025-08-30 18:01:08', '2025-08-30 18:01:08'),
 ('USR86216351', 'stephanie_mak', 'stepmak724@gmail.com', '$2y$10$22aFdByU874jeA4pePRZvu8flto58GGa.GCU8ezi/xqkgZHLjYZXm', 'member', 'active', NULL, NULL, '2025-08-06 04:32:29', '2025-08-06 04:32:29'),
+('USR93208992', 'leo_shin', 'leoshin1234@gmail.com', '$2y$10$6SMWYwepM7UTDIeohYjBsO5Ydqf3nBXfxUCNd3oGU1/98.y.Oh4H.', 'member', 'active', '/assets/images/profile_pictures/user_68b9c8dd47aa02.45827811.jpg', NULL, '2025-09-04 17:14:05', '2025-09-04 20:41:26'),
 ('USR94995839', 'salman_moosa', 'salmaanmoosa498@gmail.com', '$2y$10$mDAihTtzdNvX1kRt8kv7cOQ0SLmpEIrKg2ylRBlvnl7b2VrgiF7/6', 'member', 'active', NULL, NULL, '2025-08-02 16:06:19', '2025-08-02 16:06:19');
 
 -- --------------------------------------------------------
@@ -545,12 +571,16 @@ INSERT INTO `user` (`user_id`, `username`, `email`, `password`, `role`, `status`
 --
 
 CREATE TABLE `user_profiles` (
-  `profile_id` int(11) NOT NULL,
   `user_id` varchar(11) NOT NULL,
   `first_name` varchar(50) NOT NULL,
   `last_name` varchar(50) NOT NULL,
   `phone` varchar(20) DEFAULT NULL,
   `date_of_birth` date DEFAULT NULL,
+  `address_line1` varchar(255) NOT NULL,
+  `address_line2` varchar(255) DEFAULT NULL,
+  `city` varchar(100) NOT NULL,
+  `state` varchar(100) NOT NULL,
+  `postal_code` varchar(20) NOT NULL,
   `address` text DEFAULT NULL,
   `newsletter_subscription` tinyint(1) DEFAULT 0,
   `marketing_emails` tinyint(1) DEFAULT 0,
@@ -562,10 +592,12 @@ CREATE TABLE `user_profiles` (
 -- Dumping data for table `user_profiles`
 --
 
-INSERT INTO `user_profiles` (`profile_id`, `user_id`, `first_name`, `last_name`, `phone`, `date_of_birth`, `address`, `newsletter_subscription`, `marketing_emails`, `created_at`, `updated_at`) VALUES
-(0, 'USR86216351', 'Stephanie', 'Mak', '0112524000', '2000-06-10', '21, Jalan 23, Taman Bunga Raya, Setapak, Kuala Lumpur 51200, CA', 1, 1, '2025-08-06 04:32:29', '2025-08-06 04:32:29'),
-(1, 'USR00000001', 'Admin', 'User', '555-0000', NULL, 'ToyLand Store HQ, Admin City, AC 12345, USA', 0, 0, '2025-08-02 16:04:16', '2025-08-02 16:04:16'),
-(2, 'USR94995839', 'Salman', 'Moosa', '0185891720', '2004-04-03', 'J004, Jalan Malinja, Taman Bunga Raya, Kuala Lumpur, Wilayah Persekutuan Kuala Lumpur 53000, US', 0, 0, '2025-08-02 16:06:19', '2025-08-02 16:06:19');
+INSERT INTO `user_profiles` (`user_id`, `first_name`, `last_name`, `phone`, `date_of_birth`, `address_line1`, `address_line2`, `city`, `state`, `postal_code`, `address`, `newsletter_subscription`, `marketing_emails`, `created_at`, `updated_at`) VALUES
+('USR00000001', 'Admin', 'User', '555-0000', NULL, '', NULL, '', '', '', 'ToyLand Store HQ, Admin City, AC 12345, USA', 0, 0, '2025-08-02 16:04:16', '2025-08-02 16:04:16'),
+('USR41317469', 'Kim', 'Lee', '0115488794546', '1992-08-25', '215, Jalan 234, Taman Bunga Raya', '', 'Setapak', 'Kuala Lumpur', '51200', NULL, 1, 1, '2025-09-04 21:21:37', '2025-09-04 21:21:37'),
+('USR86216351', 'Stephanie', 'Mak', '0112524000', '2000-06-10', '', NULL, '', '', '', '21, Jalan 23, Taman Bunga Raya, Setapak, Kuala Lumpur 51200, CA', 1, 1, '2025-08-06 04:32:29', '2025-08-06 04:32:29'),
+('USR93208992', 'Leo', 'Shin', '01144487978', '2001-05-10', '65, Jalan leon, Park Gardeb', '', 'Seremban', 'Negeri Sembilan', '70300', NULL, 1, 1, '2025-09-04 17:14:05', '2025-09-04 17:14:05'),
+('USR94995839', 'Salman', 'Moosa', '0185891720', '2004-04-03', '', NULL, '', '', '', 'J004, Jalan Malinja, Taman Bunga Raya, Kuala Lumpur, Wilayah Persekutuan Kuala Lumpur 53000, US', 0, 0, '2025-08-02 16:06:19', '2025-08-02 16:06:19');
 
 -- --------------------------------------------------------
 
@@ -624,6 +656,13 @@ ALTER TABLE `orders`
 ALTER TABLE `order_items`
   ADD PRIMARY KEY (`order_id`,`product_id`),
   ADD KEY `order_items_fk_2` (`product_id`);
+
+--
+-- Indexes for table `password_resets`
+--
+ALTER TABLE `password_resets`
+  ADD PRIMARY KEY (`reset_id`),
+  ADD KEY `idx_user_id` (`user_id`);
 
 --
 -- Indexes for table `payments`
@@ -686,8 +725,7 @@ ALTER TABLE `user`
 -- Indexes for table `user_profiles`
 --
 ALTER TABLE `user_profiles`
-  ADD PRIMARY KEY (`profile_id`),
-  ADD KEY `idx_user_id` (`user_id`);
+  ADD PRIMARY KEY (`user_id`);
 
 --
 -- Indexes for table `wishlist`
@@ -740,6 +778,12 @@ ALTER TABLE `order_items`
   ADD CONSTRAINT `order_items_fk_2` FOREIGN KEY (`product_id`) REFERENCES `products` (`product_id`) ON DELETE CASCADE;
 
 --
+-- Constraints for table `password_resets`
+--
+ALTER TABLE `password_resets`
+  ADD CONSTRAINT `fk_password_resets_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
 -- Constraints for table `payments`
 --
 ALTER TABLE `payments`
@@ -777,7 +821,7 @@ ALTER TABLE `reviews`
 -- Constraints for table `user_profiles`
 --
 ALTER TABLE `user_profiles`
-  ADD CONSTRAINT `user_profiles_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `user` (`user_id`) ON DELETE CASCADE;
+  ADD CONSTRAINT `fk_user_profiles_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`user_id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `wishlist`
