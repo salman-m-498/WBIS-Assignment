@@ -27,6 +27,8 @@ $newProducts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 include '../includes/header.php';
 ?>
 
+<!-- Flash message container -->
+<div id="flash-message" style="display:none; position: fixed; top: 20px; right: 20px; min-width: 200px; padding: 12px 18px; border-radius: 8px; font-size: 14px; z-index: 9999; box-shadow: 0 4px 8px #000;"> </div>
 <!-- New Arrivals Section -->
 <section class="new-arrivals-page">
     <div class="container">
@@ -63,6 +65,20 @@ include '../includes/header.php';
     </div>
 </section>
 
+<script>
+function showFlashMessage(message, type = 'success') {
+    const flash = document.getElementById('flash-message');
+    flash.textContent = message;
+    flash.style.display = 'block';
+    flash.style.backgroundColor = (type === 'success') ? '#d4edda' : '#f8d7da';
+    flash.style.color = (type === 'success') ? '#155724' : '#721c24';
+    flash.style.border = (type === 'success') ? '1px solid #c3e6cb' : '1px solid #f5c6cb';
+
+    setTimeout(() => {
+        flash.style.display = 'none';
+    }, 3000);
+}
+</script>
 <script src="/assets/js/cart.js"></script>
 <?php include '../includes/footer.php'; ?>
 .

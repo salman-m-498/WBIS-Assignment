@@ -90,6 +90,8 @@ $total_pages = ceil($total_orders / $per_page);
 
 $stmt = $pdo->prepare("
     SELECT o.*, 
+           o.tracking_number,
+           o.shipping_courier,
            COUNT(oi.product_id) AS item_count,
            GROUP_CONCAT(p.name SEPARATOR ', ') AS product_names,
            pay.payment_method,
@@ -170,6 +172,16 @@ include '../includes/header.php';
                             <span class="label">Total</span>
                             <span class="amount">RM<?= number_format($order['total_amount'], 2) ?></span>
                         </div>
+                       <?php if (!empty($order['tracking_number']) && !empty($order['shipping_courier'])): ?>
+                            <div class="summary-item">
+                                <span class="label">Courier</span>
+                                <span class="value"><?= htmlspecialchars($order['shipping_courier']) ?></span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="label">Tracking No</span>
+                                <span class="value"><?= htmlspecialchars($order['tracking_number']) ?></span>
+                            </div>
+                        <?php endif; ?>
                     </div>
                     <div class="order-products">
                         <p class="products-preview"><?= htmlspecialchars($order['product_names']) ?></p>

@@ -65,7 +65,7 @@ $countStm->execute($params);
 $totalUsers = $countStm->fetchColumn();
 $totalPages = ceil($totalUsers / $limit);
 
-include '../includes/header.php';
+include '../includes/admin_header.php';
 ?>
 
 
@@ -91,10 +91,10 @@ include '../includes/header.php';
     </div>
 </div>
 
-<body class="member-list">
+<div class="member-list">
     <div class="container">
         <small class="user-count">Users found: <?= $totalUsers ?>.</small>
-        <table class="user-table">
+        <table class="admin-table">
             <thead>
                 <tr>
                     <th>User ID</th>
@@ -157,4 +157,6 @@ include '../includes/header.php';
             <a href="?search=<?= urlencode($search) ?>&sort=<?= $sort ?>&toggleRole=<?= $toggleRole ?>&page=<?= $page + 1 ?>">Next &raquo;</a>
         <?php endif; ?>
     </div>
-</body>
+</div>
+
+<?php include '../includes/admin_footer.php'; ?>

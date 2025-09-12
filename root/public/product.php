@@ -16,6 +16,19 @@ if (!$product) {
     exit;
 }
 
+// Fetch average rating and total reviews
+$rating_stmt = $pdo->prepare("
+    SELECT ROUND(AVG(rating),1) AS avg_rating, COUNT(*) AS total_reviews
+    FROM reviews
+    WHERE product_id = ? AND status = 'approved'
+");
+$rating_stmt->execute([$product_id]);
+$rating_data = $rating_stmt->fetch(PDO::FETCH_ASSOC);
+
+$avg_rating = $rating_data['avg_rating'] ?? 0;
+$total_reviews_header = $rating_data['total_reviews'] ?? 0;
+
+
 // Main image comes from products table
 $main_image = $product['image'];
 
@@ -45,7 +58,7 @@ $related_products = $related_stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // REVIEWS SECTION
 // Review list pagination
-$GLOB_status = 'pending';
+$GLOB_status = 'approved';
 $limit = 5; 
 $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $limit;
@@ -99,7 +112,7 @@ $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
 $reviews = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Writing review section 
+// review section 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['user_id'])) {
     $user_id = $_SESSION['user_id'];
     $rating  = $_POST['rating'] ?? null;
@@ -121,12 +134,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['user_id'])) {
         }
 
         $review_id = 'UR' . str_pad($num, 9, '0', STR_PAD_LEFT);
-        $sql = "INSERT INTO reviews (review_id, user_id, product_id, rating, title, comment, status)
-                VALUES (:review_id, :user_id, :product_id, :rating, :title, :comment, 'pending')";
+        $sql = "INSERT INTO reviews (review_id, order_id, user_id, product_id, rating, title, comment, status)
+                VALUES (:review_id,:order_id, :user_id, :product_id, :rating, :title, :comment, 'pending')";
 
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
             ':review_id'  => $review_id,
+            ':order_id'   => $_POST['order_id'],
             ':user_id'    => $user_id,
             ':product_id' => $product_id,
             ':rating'     => $rating,
@@ -148,6 +162,13 @@ include '../includes/header.php';
 ?>
 
 <!-- Product Details Section -->
+<?php if (isset($_SESSION['review_success'])): ?>
+<div class="alert-success" style="padding:12px; margin:15px 0; border:1px solid #28a745; background:#eaf9f0; color:#155724; border-radius:6px;">
+<?= $_SESSION['review_success']; ?>
+</div>
+<?php unset($_SESSION['review_success']); ?>
+<?php endif; ?>
+                    
 <section class="product-details-section">
     <div class="container">
         <div class="product-details-layout">
@@ -181,15 +202,20 @@ include '../includes/header.php';
                     <h1><?= htmlspecialchars($product['name']) ?></h1>
                     
                     <div class="product-rating">
-                        <div class="stars">
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                        </div>
-                        <span>5.0 out of 5</span>
-                        <span>(24 reviews)</span>
+                        <?php if ($total_reviews_header > 0): ?>
+                            <div class="stars">
+                                <?php 
+                                $filled = floor($avg_rating);
+                                for ($i = 1; $i <= 5; $i++): 
+                                    echo $i <= $filled ? '<i class="fas fa-star"></i>' : '<i class="far fa-star"></i>';
+                                endfor;
+                                ?>
+                            </div>
+                            <span><?= htmlspecialchars($avg_rating) ?> out of 5</span>
+                            <span>(<?= htmlspecialchars($total_reviews_header) ?> reviews)</span>
+                        <?php else: ?>
+                            <p>No reviews yet</p>
+                        <?php endif; ?>
                     </div>
                     
                     <div class="product-badges">
@@ -210,17 +236,6 @@ include '../includes/header.php';
                 
                 <div class="product-description">
                     <p><?= nl2br(htmlspecialchars($product['description'])) ?></p>
-                </div>
-                
-                <div class="product-options">
-                    <div class="option-group">
-                        <label>Available Colors:</label>
-                        <div class="color-options">
-                            <button class="color-option active" data-color="blue" style="background-color: #0066cc;" title="Blue"></button>
-                            <button class="color-option" data-color="red" style="background-color: #cc0000;" title="Red"></button>
-                            <button class="color-option" data-color="green" style="background-color: #00cc00;" title="Green"></button>
-                        </div>
-                    </div>
                 </div>
                 
                 <div class="product-actions">
@@ -318,37 +333,53 @@ include '../includes/header.php';
                     <?php
                     // Step 1: Check if user has purchased this product
                     $canReview = false;
+                    $orderRow = null;
+                    
 
                     if (isset($_SESSION['user_id'])) {
                     $user_id = $_SESSION['user_id'];
 
-                    $check_stmt = $pdo->prepare("
-                        SELECT COUNT(*) 
+                     $check_stmt = $pdo->prepare("
+                        SELECT oi.order_id
                         FROM order_items oi
                         JOIN orders o ON oi.order_id = o.order_id
                         WHERE o.user_id = :user_id
                         AND oi.product_id = :product_id
                         AND o.order_status = 'delivered'
+                        LIMIT 1
                     ");
                     $check_stmt->execute([
                         ':user_id' => $user_id,
                         ':product_id' => $product_id
                     ]);
-                    $hasPurchased = $check_stmt->fetchColumn();
+                    $orderRow = $check_stmt->fetch(PDO::FETCH_ASSOC);
 
-                    if ($hasPurchased > 0) {
+                   if ($orderRow) {
                         $canReview = true;
                     }
                 }
+
+                $userHasReview = false;
+                $pendingReview = null;
+
+                if (isset($_SESSION['user_id'])) {
+                    $checkReviewStmt = $pdo->prepare("
+                        SELECT * FROM reviews 
+                        WHERE user_id = ? AND product_id = ? 
+                        LIMIT 1
+                    ");
+                    $checkReviewStmt->execute([$_SESSION['user_id'], $product_id]);
+                    $userReview = $checkReviewStmt->fetch(PDO::FETCH_ASSOC);
+
+                if ($userReview) {
+                    $userHasReview = true;
+                    if (in_array($userReview['status'], ['pending', 'rejected'])) {
+                        $pendingReview = $userReview;
+                    }
+                }
+            }
                 ?>
                     <div class="product-reviews">
-        
-                    <?php if (isset($_SESSION['review_success'])): ?>
-                        <div class="alert-success" style="padding:12px; margin:15px 0; border:1px solid #28a745; background:#eaf9f0; color:#155724; border-radius:6px;">
-                            <?= $_SESSION['review_success']; ?>
-                        </div>
-                        <?php unset($_SESSION['review_success']); ?>
-                    <?php endif; ?>
                         <div class="reviews-header">
                             <h3>Customer Reviews</h3>
                             <div class="reviews-summary">
@@ -357,7 +388,7 @@ include '../includes/header.php';
                                     $avg_stmt = $pdo->prepare("
                                         SELECT ROUND(AVG(rating),1) AS avg_rating, COUNT(*) AS total_reviews
                                         FROM reviews
-                                        WHERE product_id = ? AND status = 'pending'
+                                        WHERE product_id = ? AND status = 'approved'
                                     ");
                                     $avg_stmt->execute([$product_id]);
                                     $avg_result = $avg_stmt->fetch(PDO::FETCH_ASSOC);
@@ -394,6 +425,31 @@ include '../includes/header.php';
                             </form>
 
                             <div style="height:30px;"></div>
+                            
+                            <?php if ($pendingReview): ?>
+                                <div class="pending-review-box" style="max-width:700px; margin:20px auto; padding:15px; border:1px dashed 
+                                    <?= $pendingReview['status'] === 'pending' ? '#ff9800' : '#f44336'; ?>; 
+                                    background:<?= $pendingReview['status'] === 'pending' ? '#fff8e1' : '#fdecea'; ?>; 
+                                    border-radius:8px;">
+        
+                            <?php if ($pendingReview['status'] === 'pending'): ?>
+                                <h4 style="color:#ff9800; margin-bottom:10px;">⏳ Your review is pending approval</h4>
+                            <?php else: ?>
+                                <h4 style="color:#f44336; margin-bottom:10px;">❌ Your review was rejected by admin</h4>
+                                <p style="font-size:14px; color:#b71c1c; margin-bottom:10px;">
+                                    Your review did not meet our guidelines. 
+                                </p>
+                                <?php endif; ?>
+                                <div class="review-rating">
+                                    <?php for ($i = 1; $i <= 5; $i++): ?>
+                                        <?= $i <= $pendingReview['rating'] ? '★' : '☆'; ?>
+                                    <?php endfor; ?>
+                                </div>
+                                <strong><?= htmlspecialchars($pendingReview['title']); ?></strong>
+                                <p><?= nl2br(htmlspecialchars($pendingReview['comment'])); ?></p>
+                                <small>Submitted on <?= date("F j, Y", strtotime($pendingReview['created_at'])); ?></small>
+                            </div>
+                            <?php endif; ?>
 
                             <div class="reviews-list">
                                 <?php if ($reviews): ?>
@@ -404,9 +460,9 @@ include '../includes/header.php';
                                                 <?php 
                                                     $profilePic = !empty($review['profile_pic']) 
                                                         ? $review['profile_pic'] 
-                                                        : 'default_profile_pic.jpg';
-                                                ?>
-                                                <img src="../assets/images/profile_pictures/<?= htmlspecialchars($profilePic) ?>" 
+                                                        : '/assets/images/profile_pictures/default_profile_pic.jpg';
+                                                    ?>
+                                                    <img src="..<?= htmlspecialchars($profilePic) ?>" 
                                                     alt="Profile Picture" 
                                                     style="width:75px; height:75px; object-fit:cover; border-radius:50%; margin-right:8px; vertical-align:middle;">
 
@@ -456,10 +512,11 @@ include '../includes/header.php';
 
                         
                         <!-- Writing review section -->
-                        <?php if ($canReview): ?>
+                        <?php if ($canReview && !$userHasReview): ?>
                             <div class="write-review-section" style="max-width:700px; margin:20px auto; padding:20px; border:1px solid #ddd; border-radius:10px; background:#f9f9f9;">
                                 <h4 style="margin-bottom:15px;">Write a Review</h4>
                                 <form class="review-form" method="POST" action="product.php?id=<?php echo $product_id; ?>">
+                                    <input type="hidden" name="order_id" value="<?= htmlspecialchars($orderRow['order_id']) ?>">
                                      <!-- Rating -->
                                      <div class="rating-input" style="margin-bottom:15px;">
                                         <label style="display:block; margin-bottom:8px;">Your Rating:</label>
@@ -492,6 +549,14 @@ include '../includes/header.php';
                                 <button type="submit" class="btn btn-primary">Submit Review</button>
                             </form>
                         </div>
+                        <?php elseif ($userHasReview): ?>
+                            <!-- Already reviewed message -->
+                            <div style="max-width:700px; margin:20px auto; padding:20px; text-align:center; border:1px solid #bce0fd; border-radius:10px; background:#e7f3fe; color:#084298;">
+                                <p style="margin:0; font-size:15px; font-weight:500;">
+                                    ✅ You have already reviewed this product.
+                                </p>
+                            </div>
+
                     <?php else: ?>
                         <div style="max-width:700px; margin:20px auto; padding:20px; text-align:center; border:1px solid #f5c2c7; border-radius:10px; background:#f8d7da; color:#842029;">
                             <p style="margin:0; font-size:15px; font-weight:500;">
@@ -511,10 +576,8 @@ include '../includes/header.php';
                         <div class="shipping-info">
                             <h4>Shipping Information</h4>
                             <ul>
-                                <li><strong>Free Shipping:</strong> On orders over $50</li>
-                                <li><strong>Standard Shipping:</strong> 3-5 business days ($5.99)</li>
-                                <li><strong>Express Shipping:</strong> 1-2 business days ($12.99)</li>
-                                <li><strong>Overnight Shipping:</strong> Next business day ($19.99)</li>
+                                <li><strong>Free Shipping:</strong> On orders over RM150</li>
+                                <li><strong>Standard Shipping:</strong> 3-5 business days (RM5.99)</li>
                             </ul>
                         </div>
                         

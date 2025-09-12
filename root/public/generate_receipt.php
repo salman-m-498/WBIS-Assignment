@@ -12,13 +12,17 @@ if (!isset($_GET['order_id']) || !isset($_SESSION['user_id'])) {
     die("Invalid request.");
 }
 
-
 // Get order details
 $stmt = $pdo->prepare("
-    SELECT o.*, u.username, p.payment_method, p.payment_status, p.transaction_id
+    SELECT o.*, 
+           u.username, 
+           p.payment_method, p.payment_status, p.transaction_id,
+           v.code AS voucher_code, 
+           v.discount_type, v.discount_value
     FROM orders o
     JOIN user u ON o.user_id = u.user_id
     LEFT JOIN payments p ON o.order_id = p.order_id
+    LEFT JOIN vouchers v ON o.voucher_id = v.voucher_id
     WHERE o.order_id = ? AND o.user_id = ?
 ");
 $stmt->execute([$order_id, $user_id]);
@@ -51,12 +55,6 @@ $pdf->SetAutoPageBreak(TRUE, 15);
 $pdf->AddPage();
 $pdf->SetFont('helvetica', '', 10);
 
-// Optional logo (place a logo at root/public/assets/logo.png if you want)
-$logoPath = $root . '/public/assets/logo.png';
-if (file_exists($logoPath)) {
-    // x, y, width
-    $pdf->Image($logoPath, 15, 12, 30, '', '', '', '', false, 300);
-}
 
 // Header bar
 $pdf->SetY(10);
@@ -70,7 +68,7 @@ $pdf->Ln(4);
 $pdf->SetTextColor(0,0,0);
 $pdf->SetFont('helvetica', '', 10);
 
-// Order + Customer block (two columns)
+// Order + Customer block
 $shippingHtml = '<strong>Shipping Information</strong><br/>' .
     htmlspecialchars($order['shipping_first_name'] . ' ' . $order['shipping_last_name']) . '<br/>' .
     htmlspecialchars($order['shipping_address_line1']) . '<br/>';
@@ -104,7 +102,7 @@ $twoColHtml = '
 
 $pdf->writeHTML($twoColHtml, true, false, true, false, '');
 
-// Items table (styled)
+// Items table
 $itemsHtml = '
 <style>
     table.items { border-collapse: collapse; width: 100%; }
@@ -139,7 +137,7 @@ $itemsHtml .= '</table><br/>';
 
 $pdf->writeHTML($itemsHtml, true, false, true, false, '');
 
-// Totals block (right aligned)
+// Totals block
 $totalsHtml = '
 <table cellpadding="6" style="width:100%; border-collapse:collapse;">
 <tr>
@@ -155,10 +153,15 @@ $totalsHtml = '
                 <td style="text-align:right; border:none;">' . ($order['shipping_cost'] == 0 ? 'FREE' : 'RM ' . number_format($order['shipping_cost'], 2)) . '</td>
             </tr>';
 if (!empty($order['discount_amount']) && (float)$order['discount_amount'] > 0) {
+    $voucherCode = !empty($order['voucher_code']) 
+    ?  ' <span style="color:#e67e22; font-weight:bold;">[' . htmlspecialchars($order['voucher_code']) . ']</span>'
+    :'';
     $totalsHtml .= '
             <tr>
-                <td style="border: none;">Discount:</td>
-                <td style="text-align:right; border:none;">-RM ' . number_format($order['discount_amount'], 2) . '</td>
+                <td style="border: none;">Discount'. $voucherCode . ':</td>
+                <td style="text-align:right; border:none; font-weight:bold; color:#e74c3c;">
+                    -RM ' . number_format($order['discount_amount'], 2) . '
+                </td>
             </tr>';
 }
 $totalsHtml .= '

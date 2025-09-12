@@ -4,7 +4,7 @@ require_once '../includes/db.php';
 // Admin user details
 $username = 'admin1';
 $password = 'admin1';
-$email = 'admin@toyland.com';
+$email = 'atoyland97@gmail.com';
 $role = 'admin';
 
 try {

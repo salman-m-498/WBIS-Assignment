@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../includes/db.php';
+require_once '../includes/functions.php';
 
 // Check if form was submitted
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -79,6 +80,53 @@ function handleLogin() {
     }
 }
 
+function assignWelcomeVoucher($pdo, $user_id) {
+    try {
+        // Get the welcome voucher (NEWUSER voucher)
+        $stmt = $pdo->prepare("
+            SELECT voucher_id 
+            FROM vouchers 
+            WHERE code = 'NEWUSER' 
+            AND status = 'active' 
+            AND start_date <= NOW() 
+            AND end_date >= NOW()
+            LIMIT 1
+        ");
+        $stmt->execute();
+        $voucher = $stmt->fetch();
+        
+        if ($voucher) {
+            // Check if user doesn't already have this voucher
+            $checkStmt = $pdo->prepare("
+                SELECT COUNT(*) 
+                FROM user_vouchers 
+                WHERE user_id = ? AND voucher_id = ?
+            ");
+            $checkStmt->execute([$user_id, $voucher['voucher_id']]);
+            $hasVoucher = $checkStmt->fetchColumn() > 0;
+            
+            if (!$hasVoucher) {
+                // Generate user_voucher_id and collect voucher
+                $user_voucher_id = generateNextId($pdo, "user_vouchers", "user_voucher_id", "UV", 11);
+                
+                // Assign voucher to user
+                $insertStmt = $pdo->prepare("
+                    INSERT INTO user_vouchers (user_voucher_id, user_id, voucher_id) 
+                    VALUES (?, ?, ?)
+                ");
+                $insertStmt->execute([$user_voucher_id, $user_id, $voucher['voucher_id']]);
+                
+                return true;
+            }
+        }
+        
+        return false;
+    } catch (Exception $e) {
+        error_log("Error assigning welcome voucher: " . $e->getMessage());
+        return false;
+    }
+}
+
 function handleRegister() {
     global $pdo;
     
@@ -116,12 +164,13 @@ function handleRegister() {
         $targetAbs = $uploadDirAbs . $filename;
 
         if (move_uploaded_file($file['tmp_name'], $targetAbs)) {
-            return $uploadDirWeb . $filename; // Return web path for DB
+             return $uploadDirWeb . $filename;
         }
 
         return null;
     }
 
+    $profile_pic = null;
     if (isset($_FILES['profile_pic'])) {
         $profile_pic = handleProfilePicUpload($_FILES['profile_pic']);
     }
@@ -176,11 +225,19 @@ function handleRegister() {
     }
     
     // Check terms acceptance
-    if (!$terms || !$age_verification) {
-        $_SESSION['error'] = 'You must agree to the terms and conditions and confirm your age.';
-        $_SESSION['form_data'] = $_POST;
-        header('Location: register.php');
-        exit();
+    if (!$terms) {
+    $_SESSION['error'] = 'You must agree to the Terms and Conditions and Privacy Policy.';
+    $_SESSION['form_data'] = $_POST;
+    header('Location: register.php');
+    exit();
+    }
+
+    // Check age verification
+    if (!$age_verification) {
+    $_SESSION['error'] = 'You must confirm that you are at least 13 years old.';
+    $_SESSION['form_data'] = $_POST;
+    header('Location: register.php');
+    exit();
     }
     
     try {
@@ -246,12 +303,7 @@ function handleRegister() {
          
         $pdo->commit();
 
-        // Auto-login the user
-        $_SESSION['user_id'] = $user_id;
-        $_SESSION['username'] = $username;
-        $_SESSION['email'] = $email;
-        $_SESSION['role'] = 'member';
-        $_SESSION['profile_pic'] =  $profile_pic;
+        assignWelcomeVoucher($pdo, $user_id);
         
         // Clear form data
         unset($_SESSION['form_data']);

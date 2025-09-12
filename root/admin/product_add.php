@@ -73,6 +73,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // GALLERY IMAGES (collect successfully uploaded paths)
     $gallery_paths = [];
     if (!empty($_FILES['gallery_images']['name'][0])) {
+        // Enforce limit of 10 files max
+        $maxPhotos = 10;
+        $totalFiles = count($_FILES['gallery_images']['name']);
+        if ($totalFiles > $maxPhotos) {
+        $_SESSION['error'] = "You can only upload up to $maxPhotos gallery images per product.";
+        header("Location: product_add.php");
+        exit();
+        }
+
         foreach ($_FILES['gallery_images']['name'] as $i => $n) {
             $file = [
                 'name'     => $_FILES['gallery_images']['name'][$i],
@@ -142,7 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }  
 
 $categories = $pdo->query("SELECT * FROM categories WHERE parent_id IS NOT NULL ORDER BY name")->fetchAll();
-include '../includes/header.php';
+include '../includes/admin_header.php';
 ?>
 
 <section class="admin-section">
@@ -248,7 +257,7 @@ include '../includes/header.php';
     </div>
 </section>
 
-<?php include '../includes/footer.php'; ?>
+<?php include '../includes/admin_footer.php'; ?>
 
 <script>
 const galleryInput = document.getElementById('gallery_images');
@@ -258,12 +267,19 @@ let selectedFiles = []; // Array to store accumulated files
 galleryInput.addEventListener('change', function(e) {
     // Add new files to our array (avoiding duplicates by name)
     Array.from(e.target.files).forEach(file => {
+        //Limit to 10
+         if (selectedFiles.length < 10) { 
         // Check if file with same name already exists
         const exists = selectedFiles.some(f => f.name === file.name && f.size === file.size);
         if (!exists) {
             selectedFiles.push(file);
         }
+    }
     });
+
+    if (selectedFiles.length >= 10) {
+        alert("You can only upload up to 10 gallery images per product.");
+    }
     
     // Update the preview
     updatePreview();
@@ -308,6 +324,12 @@ function updatePreview() {
     
     if (selectedFiles.length === 0) {
         preview.innerHTML = "<em>No files selected</em>";
+    } else if (selectedFiles.length >= 10) {
+       const note = document.createElement("div");
+       note.style.color = "red";
+       note.style.marginTop = "5px";
+       note.textContent = "Maximum of 10 images reached.";
+       preview.appendChild(note);
     }
 }
 

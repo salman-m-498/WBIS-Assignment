@@ -56,6 +56,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
 // --- Handle Search & Sort ---
 $search = $_GET['search'] ?? '';
 $sort = $_GET['sort'] ?? 'newest';
+$page = max(1, (int)($_GET['page'] ?? 1));
+$per_page = 15; 
+$offset = ($page - 1) * $per_page;
 
 $where = '';
 $params = [];
@@ -91,18 +94,26 @@ switch ($sort) {
         break;
 }
 
+// Count total
+$count_sql = "SELECT COUNT(*) FROM products p LEFT JOIN categories c ON p.category_id = c.category_id $where";
+$count_stmt = $pdo->prepare($count_sql);
+$count_stmt->execute($params);
+$total_products = $count_stmt->fetchColumn();
+$total_pages = ceil($total_products / $per_page);
+
 $sql = "SELECT p.*, c.name AS category_name
         FROM products p
         LEFT JOIN categories c ON p.category_id = c.category_id
         $where
-        ORDER BY $orderBy";
+        ORDER BY $orderBy
+        LIMIT $per_page OFFSET $offset";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 $page_title = "Manage Products";
-include '../includes/header.php';
+include '../includes/admin_header.php';
 ?>
 
 <section class="admin-section products-management">
@@ -123,8 +134,8 @@ include '../includes/header.php';
     <?php endif; ?>
 
     <!-- Actions -->
-    <div class="filters" style="margin-bottom:20px; display:flex; gap:10px;">
-            <form method="get" action="products.php" style="flex:1; display:flex; gap:10px;">
+    <div class="products-filters-bar">
+            <form method="get" action="products.php" class="products-filters-form">
                 <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" 
                        placeholder="Search products..." style="flex:1; padding:5px;">
                 <select name="sort" onchange="this.form.submit()">
@@ -143,7 +154,7 @@ include '../includes/header.php';
         </div>
 
     <!-- Products Table -->
-    <table class="table">
+    <table class="admin-table">
         <thead>
             <tr>
                 <th>Image</th>
@@ -172,12 +183,12 @@ include '../includes/header.php';
                     <td>RM <?= number_format($p['price'], 2) ?></td>
                     <td><?= isset($p['stock_quantity']) ?(int)$p['stock_quantity'] : 0 ?></td>
                     <td><?= ucfirst($p['status']) ?></td>
-                    <td>
-                        <a href="product_edit.php?id=<?= urlencode($p['product_id']) ?>" class="btn btn-small">Edit</a>
+                    <td class="action-buttons">
+                        <a href="product_edit.php?id=<?= urlencode($p['product_id']) ?>" class="btn-edit">Edit</a>
                         <form method="post" action="products.php" style="display:inline;" 
                               onsubmit="return confirm('Are you sure you want to delete this product?');">
                             <input type="hidden" name="delete_id" value="<?= $p['product_id'] ?>">
-                            <button type="submit" class="btn btn-small btn-delete">Delete</button>
+                            <button type="submit" class="btn-delete">Delete</button>
                         </form>
                     </td>
                 </tr>
@@ -190,6 +201,26 @@ include '../includes/header.php';
             <?php endif; ?>
         </tbody>
     </table>
-</div>
+     <!-- Pagination -->
+            <div class="pagination">
+                <ul class="pagination-list">
+                    <?php if ($page > 1): ?>
+                        <li><a href="?<?= http_build_query(array_merge($_GET, ['page'=>1])) ?>">First</a></li>
+                        <li><a href="?<?= http_build_query(array_merge($_GET, ['page'=>$page-1])) ?>">Prev</a></li>
+                    <?php endif; ?>
 
-<?php include '../includes/footer.php'; ?>
+                    <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                        <li><a class="<?= $page==$i?'active':'' ?>" href="?<?= http_build_query(array_merge($_GET, ['page'=>$i])) ?>"><?= $i ?></a></li>
+                    <?php endfor; ?>
+
+                    <?php if ($page < $total_pages): ?>
+                        <li><a href="?<?= http_build_query(array_merge($_GET, ['page'=>$page+1])) ?>">Next</a></li>
+                        <li><a href="?<?= http_build_query(array_merge($_GET, ['page'=>$total_pages])) ?>">Last</a></li>
+                    <?php endif; ?>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<?php include '../includes/admin_footer.php'; ?>

@@ -11,12 +11,15 @@ if (!isset($_SESSION['order_success'])) {
 $order_data = $_SESSION['order_success'];
 unset($_SESSION['order_success']); // Clear the session data
 
-// Get complete order details
+// Get complete order details including voucher information
 $stmt = $pdo->prepare("
-    SELECT o.*, p.payment_id, p.payment_method, p.payment_status, p.transaction_id, p.payment_date, u.username
+    SELECT o.*, p.payment_id, p.payment_method, p.payment_status, p.transaction_id, p.payment_date, 
+           u.username,
+           v.code as voucher_code, v.description as voucher_description, v.discount_type, v.discount_value
     FROM orders o
     LEFT JOIN payments p ON o.order_id = p.order_id
     LEFT JOIN user u ON o.user_id = u.user_id
+    LEFT JOIN vouchers v ON o.voucher_id = v.voucher_id
     WHERE o.order_id = ? AND o.user_id = ?
 ");
 $stmt->execute([$order_data['order_id'], $order_data['user_id']]);
@@ -60,6 +63,14 @@ include '../includes/header.php';
             <p>Thank you for your purchase. Your order has been received and is being processed.</p>
         </div>
 
+        <?php if ($order['voucher_code']): ?>
+            <div class="voucher-success-notice">
+                <i class="fas fa-ticket-alt"></i>
+                <span>Voucher "<?= htmlspecialchars($order['voucher_code']) ?>" was applied successfully!</span>
+            </div>
+            <?php endif; ?>
+        </div>
+
         <div class="order-confirmation">
             <div class="confirmation-details">
                 <div class="order-info-card">
@@ -91,6 +102,20 @@ include '../includes/header.php';
                                 <?= ucfirst($order['order_status']) ?>
                             </span>
                         </div>
+                         <?php if ($order['voucher_code']): ?>
+                        <div class="info-item">
+                            <label>Voucher Used:</label>
+                            <span class="voucher-used">
+                                <?= htmlspecialchars($order['voucher_code']) ?>
+                                <?php
+                                $discountText = $order['discount_type'] == 'percentage' 
+                                    ? $order['discount_value'] . '% OFF' 
+                                    : 'RM' . number_format($order['discount_value'], 2) . ' OFF';
+                                ?>
+                                <small>(<?= $discountText ?>)</small>
+                            </span>
+                        </div>
+                        <?php endif; ?>
                         <div class="info-item">
                             <label>Total Amount:</label>
                             <span class="total-amount">RM<?= number_format($order['total_amount'], 2) ?></span>
@@ -153,12 +178,23 @@ include '../includes/header.php';
                             <span>Discount:</span>
                             <span>-RM<?= number_format($order['discount_amount'], 2) ?></span>
                         </div>
+                        <?php if ($order['voucher_description']): ?>
+                        <div class="voucher-description">
+                            <small><i class="fas fa-info-circle"></i> <?= htmlspecialchars($order['voucher_description']) ?></small>
+                        </div>
+                        <?php endif; ?>
                         <?php endif; ?>
                         <div class="total-row final-total">
                             <span>Total:</span>
                             <span>RM<?= number_format($order['total_amount'], 2) ?></span>
                         </div>
                     </div>
+                    <?php if ($order['voucher_code']): ?>
+                    <div class="savings-highlight">
+                        <i class="fas fa-piggy-bank"></i>
+                        <span>You saved RM<?= number_format($order['discount_amount'], 2) ?> with voucher <?= htmlspecialchars($order['voucher_code']) ?>!</span>
+                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
 
@@ -168,6 +204,9 @@ include '../includes/header.php';
                 </a>
                 <a href="../member/orders.php" class="btn btn-outline">
                     <i class="fas fa-list"></i> View Order History
+                </a>
+                 <a href="vouchers.php" class="btn btn-outline">
+                    <i class="fas fa-ticket-alt"></i> Get More Vouchers
                 </a>
                 <a href="products.php" class="btn btn-outline">
                     <i class="fas fa-shopping-bag"></i> Continue Shopping
@@ -252,6 +291,12 @@ document.addEventListener('DOMContentLoaded', function() {
             card.style.transform = 'translateY(0)';
         }, index * 200);
     });
+    // Add special animation for voucher success notice
+    const voucherNotice = document.querySelector('.voucher-success-notice');
+    if (voucherNotice) {
+        voucherNotice.style.animation = 'slideInDown 0.8s ease-out';
+    }
+
 });
 
 // Add bounce animation

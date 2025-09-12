@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $categories = $pdo->query("SELECT category_id, name FROM categories WHERE parent_id IS NULL ORDER BY name")->fetchAll();
-include '../includes/header.php';
+include '../includes/admin_header.php';
 ?>
 
 <section class="admin-section">
@@ -95,4 +95,4 @@ include '../includes/header.php';
     </div>
 </section>
 
-<?php include '../includes/footer.php'; ?>
+<?php include '../includes/admin_footer.php'; ?>

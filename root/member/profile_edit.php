@@ -30,7 +30,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email           = $_POST['email'];
     $first_name      = $_POST['first_name'];
     $last_name       = $_POST['last_name'];
-    $homeAddress     = $_POST['address'];
+    $address_line1   = $_POST['address_line1'];
+    $address_line2   = $_POST['address_line2'];
+    $city            = $_POST['city'];
+    $state           = $_POST['state'];
+    $postal_code     = $_POST['postal_code'];
     $phone           = $_POST['phone'];
     $newsLetterSub   = isset($_POST['newsletter_subscription']) ? 1 : 0;
     $marketingEmails = isset($_POST['marketing_emails']) ? 1 : 0;
@@ -56,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     unlink($targetDir . $user['profile_pic']);
                 }
                 // Save only filename
-                $profilePicName = $fileName;
+                $profilePicName = '/assets/images/profile_pictures/' .  $fileName;
             } else {
                  $errorMessage = "Error uploading file.";
             }
@@ -67,13 +71,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
     // Update profile table
-    $updateProfilesSql = "UPDATE user_profiles 
-                          SET first_name = ?, last_name = ?, address = ?, phone = ?, 
+     $updateProfilesSql = "UPDATE user_profiles 
+                           SET first_name = ?, last_name = ?, phone = ?, 
+                              address_line1 = ?, address_line2 = ?, city = ?, state = ?, postal_code = ?, 
                               newsletter_subscription = ?, marketing_emails = ?, date_of_birth = ? 
                           WHERE user_id = ?";
     $stmt = $pdo->prepare($updateProfilesSql);
     $stmt->execute([
-        $first_name, $last_name, $homeAddress, $phone, 
+        $first_name, $last_name,$phone,
+        $address_line1, $address_line2, $city, $state, $postal_code,
         $newsLetterSub, $marketingEmails, $dateOfBirth, $userId
     ]);
 
@@ -108,7 +114,7 @@ include '../includes/header.php';
             <?php
             $defaultPic = '/assets/images/profile_pictures/default_profile_pic.jpg';
             $profilePicPath = !empty($user['profile_pic']) 
-                ? '/assets/images/profile_pictures/' . $user['profile_pic'] 
+                ?  $user['profile_pic'] 
                 : $defaultPic;
             ?>
             
@@ -140,8 +146,28 @@ include '../includes/header.php';
             </div>
 
             <div class="form-group">
-                <label><strong>Home address:</strong></label>
-                <input type="text" name="address" value="<?= htmlspecialchars($user['address']) ?>">
+                <label><strong>Address Line 1:</strong></label>
+                <input type="text" name="address_line1" value="<?= htmlspecialchars($user['address_line1']) ?>">
+            </div>
+
+            <div class="form-group">
+                <label><strong>Address Line 2:</strong></label>
+                <input type="text" name="address_line2" value="<?= htmlspecialchars($user['address_line2']) ?>">
+            </div>
+
+            <div class="form-group">
+                <label><strong>City:</strong></label>
+                <input type="text" name="city" value="<?= htmlspecialchars($user['city']) ?>">
+            </div>
+
+            <div class="form-group">
+                <label><strong>State:</strong></label>
+                <input type="text" name="state" value="<?= htmlspecialchars($user['state']) ?>">
+            </div>
+
+            <div class="form-group">
+                <label><strong>Postal Code:</strong></label>
+                <input type="text" name="postal_code" value="<?= htmlspecialchars($user['postal_code']) ?>">
             </div>
 
             <div class="form-group">

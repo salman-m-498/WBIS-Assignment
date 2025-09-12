@@ -41,6 +41,21 @@ $stmt = $pdo->prepare("
 $stmt->execute([$user_id]);
 $cart_items = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// Get user's available vouchers (not used, not expired)
+$voucherStmt = $pdo->prepare("
+    SELECT v.*, uv.user_voucher_id, uv.collected_at
+    FROM vouchers v
+    JOIN user_vouchers uv ON v.voucher_id = uv.voucher_id
+    WHERE uv.user_id = ? 
+    AND uv.used_at IS NULL 
+    AND v.status = 'active'
+    AND v.start_date <= NOW() 
+    AND v.end_date >= NOW()
+    ORDER BY v.discount_value DESC
+");
+$voucherStmt->execute([$user_id]);
+$available_vouchers = $voucherStmt->fetchAll(PDO::FETCH_ASSOC);
+
 // Calculate totals
 $subtotal = 0;
 $total_items = 0;
@@ -217,14 +232,64 @@ include '../includes/header.php';
                     </div>
                 </div>
                 
-                <!-- Promo Code -->
-                <div class="promo-code">
-                    <h4>Have a Promo Code?</h4>
-                    <div class="promo-form">
-                        <input type="text" placeholder="Enter promo code" id="promo-code">
-                        <button type="button" class="btn btn-outline" id="apply-promo">Apply</button>
-                    </div>
-                    <div id="promo-message" style="margin-top: 10px; font-size: 14px;"></div>
+                 <!-- Voucher Selection -->
+                <div class="voucher-section">
+                    <h4>Select a Voucher</h4>
+                    <?php if (empty($available_vouchers)): ?>
+                        <div class="no-vouchers">
+                            <p style="color: #666; font-size: 14px; margin: 10px 0;">
+                                No vouchers available. 
+                                <a href="vouchers.php" style="color: #007bff;">Collect vouchers here!</a>
+                            </p>
+                        </div>
+                    <?php else: ?>
+                        <div class="voucher-selection">
+                            <div class="voucher-option">
+                                <label>
+                                    <input type="radio" name="selected_voucher" value="" checked>
+                                    <span class="voucher-details">
+                                        <span class="voucher-title">No voucher</span>
+                                        <span class="voucher-desc">Continue without discount</span>
+                                    </span>
+                                </label>
+                            </div>
+                            
+                            <?php foreach ($available_vouchers as $voucher): ?>
+                                <?php
+                                $discountText = $voucher['discount_type'] == 'percentage' 
+                                    ? $voucher['discount_value'] . '% OFF' 
+                                    : 'RM' . number_format($voucher['discount_value'], 2) . ' OFF';
+                                
+                                $isEligible = $subtotal >= $voucher['min_order_amount'];
+                                ?>
+                                <div class="voucher-option <?= !$isEligible ? 'disabled' : '' ?>">
+                                    <label>
+                                        <input type="radio" name="selected_voucher" value="<?= $voucher['voucher_id'] ?>" 
+                                               <?= !$isEligible ? 'disabled' : '' ?>
+                                               data-discount-type="<?= $voucher['discount_type'] ?>"
+                                               data-discount-value="<?= $voucher['discount_value'] ?>"
+                                               data-min-order="<?= $voucher['min_order_amount'] ?>">
+                                        <span class="voucher-details">
+                                            <span class="voucher-title">
+                                                <?= htmlspecialchars($voucher['code']) ?> - <?= $discountText ?>
+                                            </span>
+                                            <span class="voucher-desc">
+                                                <?= htmlspecialchars($voucher['description']) ?>
+                                                <br>
+                                                <small style="color: <?= $isEligible ? '#28a745' : '#dc3545' ?>;">
+                                                    Min order: RM<?= number_format($voucher['min_order_amount'], 2) ?>
+                                                    <?= !$isEligible ? ' (Not eligible)' : '' ?>
+                                                </small>
+                                            </span>
+                                        </span>
+                                    </label>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <!-- Hidden field to pass selected voucher to checkout -->
+                    <input type="hidden" name="selected_voucher_id" id="selected-voucher-id" value="">
                 </div>
                 
                 <!-- Checkout Button -->
@@ -344,16 +409,44 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // Discount logic
-        const discountElement = document.getElementById('discount-amount');
-        const discount = discountElement ? 
-            parseFloat(discountElement.textContent.replace('-RM', '') || 0) : 0;
+        // Calculate voucher discount
+        const selectedVoucher = document.querySelector('input[name="selected_voucher"]:checked');
+        let discount = 0;
+        
+        if (selectedVoucher && selectedVoucher.value && subtotal > 0) {
+            const discountType = selectedVoucher.dataset.discountType;
+            const discountValue = parseFloat(selectedVoucher.dataset.discountValue);
+            const minOrder = parseFloat(selectedVoucher.dataset.minOrder);
+            
+            if (subtotal >= minOrder) {
+                if (discountType === 'percentage') {
+                    discount = (subtotal * discountValue) / 100;
+                } else {
+                    discount = discountValue;
+                }
+            }
+        }
 
+        // Update discount display
+        const discountRow = document.getElementById('discount-row');
+        const discountElement = document.getElementById('discount-amount');
+        
+        if (discount > 0) {
+            discountRow.style.display = 'flex';
+            discountElement.textContent = '-RM' + discount.toFixed(2);
+        } else {
+            discountRow.style.display = 'none';
+        }
+
+        // Update total
         const total = subtotal + shipping - discount;
         const totalElement = document.getElementById('total-amount');
         if (totalElement) {
             totalElement.textContent = 'RM' + total.toFixed(2);
         }
+        
+        // Update voucher eligibility
+        updateVoucherEligibility(subtotal);
         
         // Update select all checkbox state
         const allCheckboxes = document.querySelectorAll('.select-item');
@@ -373,6 +466,45 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
+
+    // Update voucher eligibility based on current subtotal
+    function updateVoucherEligibility(subtotal) {
+        const voucherOptions = document.querySelectorAll('.voucher-option');
+        
+        voucherOptions.forEach(option => {
+            const radio = option.querySelector('input[type="radio"]');
+            const minOrder = radio ? parseFloat(radio.dataset.minOrder || 0) : 0;
+            
+            if (radio && radio.value) { // Skip "no voucher" option
+                const isEligible = subtotal >= minOrder;
+                
+                if (isEligible) {
+                    option.classList.remove('disabled');
+                    radio.disabled = false;
+                    
+                    const smallText = option.querySelector('small');
+                    if (smallText) {
+                        smallText.style.color = '#28a745';
+                        smallText.textContent = `Min order: RM${minOrder.toFixed(2)}`;
+                    }
+                } else {
+                    option.classList.add('disabled');
+                    radio.disabled = true;
+                    
+                    // If this voucher was selected but is no longer eligible, deselect it
+                    if (radio.checked) {
+                        document.querySelector('input[name="selected_voucher"][value=""]').checked = true;
+                    }
+                    
+                    const smallText = option.querySelector('small');
+                    if (smallText) {
+                        smallText.style.color = '#dc3545';
+                        smallText.textContent = `Min order: RM${minOrder.toFixed(2)} (Not eligible)`;
+                    }
+                }
+            }
+        });
+    }
     
     // Initialize cart on page load
     initializeCart();
@@ -380,6 +512,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // Event listeners for checkboxes
     document.querySelectorAll('.select-item').forEach(cb => {
         cb.addEventListener('change', updateCartTotals);
+    });
+
+    // Event listeners for voucher selection
+    document.querySelectorAll('input[name="selected_voucher"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            // Update hidden field for form submission
+            document.getElementById('selected-voucher-id').value = this.value;
+            updateCartTotals();
+        });
     });
 
     // Quantity change handlers

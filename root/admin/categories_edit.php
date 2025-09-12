@@ -58,7 +58,7 @@ $categories = $pdo->prepare("SELECT category_id, name FROM categories WHERE cate
 $categories->execute([$id]);
 $categories = $categories->fetchAll();
 
-include '../includes/header.php';
+include '../includes/admin_header.php';
 ?>
 
 <section class="admin-section">
@@ -113,4 +113,4 @@ include '../includes/header.php';
     </div>
 </section>
 
-<?php include '../includes/footer.php'; ?>
+<?php include '../includes/admin_footer.php'; ?>

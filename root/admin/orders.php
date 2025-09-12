@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../includes/db.php';
+require_once 'send_status_email.php';
 
 if (!isset($_SESSION['admin_id']) || $_SESSION['admin_role'] !== 'admin') {
     header('Location: admin_login.php');
@@ -11,7 +12,14 @@ if (!isset($_SESSION['admin_id']) || $_SESSION['admin_role'] !== 'admin') {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     try {
         $valid_statuses = ['pending', 'processing', 'shipped', 'delivered', 'cancel_requested', 'cancelled'];
-
+        $allowed_transitions = [
+        'pending'           => ['processing', 'cancel_requested'],
+        'processing'        => ['shipped', 'cancel_requested'],
+        'shipped'           => ['delivered'],
+        'cancel_requested'  => ['cancelled'],
+        'delivered'         => [],   // locked
+        'cancelled'         => []    // locked
+        ];
         if ($_POST['action'] === 'update_status') {
            // ---------- SINGLE ORDER UPDATE ----------
             $order_id = $_POST['order_id'] ?? null;
@@ -21,29 +29,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 throw new Exception("Invalid order update request");
             }
 
-            if ($new_status === 'shipped') {
-                $courier = trim($_POST['courier'] ?? '');
-                $tracking = trim($_POST['tracking_number'] ?? '');
-                if (empty($courier) || empty($tracking)) {
-                    throw new Exception("Courier and tracking number are required for shipped orders");
-                }
+            $stmt = $pdo->prepare("SELECT order_status FROM orders WHERE order_id = ?");
+            $stmt->execute([$order_id]);
+            $current_status = $stmt->fetchColumn();
 
-                $stmt = $pdo->prepare("
-                    UPDATE orders 
-                    SET order_status = ?, shipping_courier = ?, tracking_number = ?, updated_at = NOW()
-                    WHERE order_id = ?
-                ");
-                $stmt->execute([$new_status, $courier, $tracking, $order_id]);
-            } else {
-                $stmt = $pdo->prepare("
-                    UPDATE orders 
-                    SET order_status = ?, updated_at = NOW()
-                    WHERE order_id = ?
-                ");
-                $stmt->execute([$new_status, $order_id]);
+           if (!in_array($new_status, $allowed_transitions[$current_status] ?? [])) {
+                throw new Exception("Invalid status transition: $current_status → $new_status");
             }
 
-            $_SESSION['success_message'] = "Order #$order_id updated successfully";
+             // Handle different status types
+            if ($new_status === 'shipped') {
+                handleShippedOrder($pdo, $order_id, $new_status);
+            } else {
+                handleRegularStatusUpdate($pdo, $order_id, $new_status);
+            }
+
+            $_SESSION['success_message'] = "Order #$order_id updated successfully. ✉️ Status email sent to customer.";
         }
 
         elseif ($_POST['action'] === 'bulk_update') {
@@ -55,64 +56,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 throw new Exception("Please select orders and a valid status");
             }
 
-            // Protect shipped orders
-            $placeholders = str_repeat('?,', count($order_ids) - 1) . '?';
-            $status_check = $pdo->prepare("SELECT order_id, order_status FROM orders WHERE order_id IN ($placeholders)");
-            $status_check->execute($order_ids);
-            foreach ($status_check->fetchAll(PDO::FETCH_ASSOC) as $row) {
-                if (in_array($new_status, ['pending','processing']) && $row['order_status'] === 'shipped') {
-                    throw new Exception("Order ID {$row['order_id']} is already shipped and cannot be changed back.");
-                }
-            }
+            // Protect shipped orders from status regression
+            validateBulkStatusChange($pdo, $order_ids, $new_status, $allowed_transitions);
 
             if ($new_status === 'shipped') {
-                $bulk_type = $_POST['bulk_shipping_type'] ?? 'same';
-
-                if ($bulk_type === 'same') {
-                    // same courier + tracking
-                    $courier = trim($_POST['courier'] ?? '');
-                    $tracking = trim($_POST['tracking_number'] ?? '');
-                    if (empty($courier) || empty($tracking)) {
-                        throw new Exception("Courier and tracking number are required");
-                    }
-
-                    $stmt = $pdo->prepare("
-                        UPDATE orders
-                        SET order_status = ?, shipping_courier = ?, tracking_number = ?, updated_at = NOW()
-                        WHERE order_id IN ($placeholders)
-                    ");
-                    $stmt->execute(array_merge([$new_status, $courier, $tracking], $order_ids));
-
-                } else {
-                    // individual shipping
-                    $pdo->beginTransaction();
-                    $stmt = $pdo->prepare("
-                        UPDATE orders
-                        SET order_status = ?, shipping_courier = ?, tracking_number = ?, updated_at = NOW()
-                        WHERE order_id = ?
-                    ");
-
-                    foreach ($order_ids as $id) {
-                        $courier = trim($_POST['individual_courier'][$id] ?? '');
-                        $tracking = trim($_POST['individual_tracking'][$id] ?? '');
-                        if (empty($courier) || empty($tracking)) {
-                            throw new Exception("Missing courier/tracking for order $id");
-                        }
-                        $stmt->execute([$new_status, $courier, $tracking, $id]);
-                    }
-                    $pdo->commit();
-                }
+                handleBulkShippedOrders($pdo, $order_ids, $new_status);
             } else {
-                // bulk non-shipped
-                $stmt = $pdo->prepare("
-                    UPDATE orders 
-                    SET order_status = ?, updated_at = NOW()
-                    WHERE order_id IN ($placeholders)
-                ");
-                $stmt->execute(array_merge([$new_status], $order_ids));
+                handleBulkRegularUpdate($pdo, $order_ids, $new_status);
             }
 
-            $_SESSION['success_message'] = count($order_ids) . " order(s) updated successfully";
+            $_SESSION['success_message'] = count($order_ids) . " order(s) updated successfully. ✉️ Emails sent to customers.";
         }
     } catch (Exception $e) {
         $_SESSION['error_message'] = $e->getMessage();
@@ -124,6 +77,105 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     exit;
 }
 
+function handleShippedOrder($pdo, $order_id, $new_status) {
+    $courier = trim($_POST['courier'] ?? '');
+    $tracking = trim($_POST['tracking_number'] ?? '');
+    
+    if (empty($courier) || empty($tracking)) {
+        throw new Exception("Courier and tracking number are required for shipped orders");
+    }
+
+    $stmt = $pdo->prepare("
+        UPDATE orders 
+        SET order_status = ?, shipping_courier = ?, tracking_number = ?, updated_at = NOW()
+        WHERE order_id = ?
+    ");
+    $stmt->execute([$new_status, $courier, $tracking, $order_id]);
+
+    sendOrderStatusEmail($pdo, $order_id);
+}
+
+function handleRegularStatusUpdate($pdo, $order_id, $new_status) {
+    $stmt = $pdo->prepare("
+        UPDATE orders 
+        SET order_status = ?, updated_at = NOW()
+        WHERE order_id = ?
+    ");
+    $stmt->execute([$new_status, $order_id]);
+
+    sendOrderStatusEmail($pdo, $order_id);
+}
+
+function validateBulkStatusChange($pdo, $order_ids, $new_status, $allowed_transitions) {
+    $placeholders = str_repeat('?,', count($order_ids) - 1) . '?';
+    $status_check = $pdo->prepare("SELECT order_id, order_status FROM orders WHERE order_id IN ($placeholders)");
+    $status_check->execute($order_ids);
+    
+    foreach ($status_check->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $current_status = $row['order_status'];
+
+    if (!in_array($new_status, $allowed_transitions[$current_status] ?? [])) {
+        throw new Exception("Order ID {$row['order_id']} cannot transition from $current_status → $new_status.");
+    }
+}
+}
+
+function handleBulkShippedOrders($pdo, $order_ids, $new_status) {
+    $bulk_type = $_POST['bulk_shipping_type'] ?? 'same';
+    $placeholders = str_repeat('?,', count($order_ids) - 1) . '?';
+
+    if ($bulk_type === 'same') {
+        $courier = trim($_POST['courier'] ?? '');
+        $tracking = trim($_POST['tracking_number'] ?? '');
+        if (empty($courier) || empty($tracking)) {
+            throw new Exception("Courier and tracking number are required");
+        }
+
+        $stmt = $pdo->prepare("
+            UPDATE orders
+            SET order_status = ?, shipping_courier = ?, tracking_number = ?, updated_at = NOW()
+            WHERE order_id IN ($placeholders)
+        ");
+        $stmt->execute(array_merge([$new_status, $courier, $tracking], $order_ids));
+
+        foreach ($order_ids as $id) {
+            sendOrderStatusEmail($pdo, $id);
+        }
+    } else {
+        $pdo->beginTransaction();
+        $stmt = $pdo->prepare("
+            UPDATE orders
+            SET order_status = ?, shipping_courier = ?, tracking_number = ?, updated_at = NOW()
+            WHERE order_id = ?
+        ");
+
+        foreach ($order_ids as $id) {
+            $courier = trim($_POST['individual_courier'][$id] ?? '');
+            $tracking = trim($_POST['individual_tracking'][$id] ?? '');
+            if (empty($courier) || empty($tracking)) {
+                throw new Exception("Missing courier/tracking for order $id");
+            }
+            $stmt->execute([$new_status, $courier, $tracking, $id]);
+            sendOrderStatusEmail($pdo, $id);
+        }
+        $pdo->commit();
+    }
+}
+
+
+function handleBulkRegularUpdate($pdo, $order_ids, $new_status) {
+    $placeholders = str_repeat('?,', count($order_ids) - 1) . '?';
+    $stmt = $pdo->prepare("
+        UPDATE orders 
+        SET order_status = ?, updated_at = NOW()
+        WHERE order_id IN ($placeholders)
+    ");
+    $stmt->execute(array_merge([$new_status], $order_ids));
+
+    foreach ($order_ids as $id) {
+        sendOrderStatusEmail($pdo, $id);
+    }
+}
 
 // Search and filter parameters
 $search = $_GET['search'] ?? '';
@@ -172,7 +224,7 @@ $order_by = match($sort) {
 
 // Pagination
 $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
-$per_page = 20;
+$per_page = 15;
 $offset = ($page - 1) * $per_page;
 
 // Get total count
@@ -228,7 +280,7 @@ $status_stats = $stats_stmt->fetchAll(PDO::FETCH_ASSOC);
 $page_title = "Order Management";
 $page_description = "Manage and track all customer orders";
 
-include '../includes/header.php';
+include '../includes/admin_header.php';
 ?>
 
 <!-- Flash Messages -->
@@ -256,6 +308,9 @@ include '../includes/header.php';
                 <button class="btn btn-primary" onclick="exportOrders()">
                     <i class="fas fa-download"></i> Export Orders
                 </button>
+                <a href="sales_analytics.php" class="btn btn-outline">
+                    <i class="fas fa-chart-line"></i> Sales Analytics
+                </a>
             </div>
         </div>
 
@@ -391,8 +446,8 @@ include '../includes/header.php';
                         <option value="pending">Pending</option>
                         <option value="processing">Processing</option>
                         <option value="shipped">Shipped</option>
-                        <option value="delivered">Delivered</option>
-                        <option value="cancelled">Cancelled</option>
+                        <option value="delivered" disabled>Delivered (Locked)</option>
+                        <option value="cancelled" disabled>Cancelled (Locked)</option>
                     </select>
                     <button type="submit" class="btn btn-primary">Update Selected</button>
                     <button type="button" class="btn btn-outline" onclick="clearSelection()">Cancel</button>
@@ -410,7 +465,7 @@ include '../includes/header.php';
             </div>
             <?php else: ?>
             
-            <table class="orders-table">
+            <table class="admin-table">
                 <thead>
                     <tr>
                         <th>
@@ -464,10 +519,13 @@ include '../includes/header.php';
                             </div>
                         </td>
                         <td>
+
+                            <div class="admin-orders">
                             <div class="status-container">
                                 <span class="status-badge status-<?= $order['order_status'] ?>">
                                     <?= ucfirst($order['order_status']) ?>
                                 </span>
+                            </div>
                             </div>
                         </td>
                         <td>
@@ -547,32 +605,28 @@ include '../includes/header.php';
             <!-- Pagination -->
             <?php if ($total_pages > 1): ?>
             <div class="pagination">
-                <div class="pagination-info">
-                    Showing <?= $offset + 1 ?> to <?= min($offset + $per_page, $total_orders) ?> of <?= $total_orders ?> orders
-                </div>
-                <div class="pagination-links">
-                    <?php if ($page > 1): ?>
-                        <a href="?<?= http_build_query(array_merge($_GET, ['page' => $page - 1])) ?>" class="page-btn">
-                            <i class="fas fa-chevron-left"></i> Previous
-                        </a>
-                    <?php endif; ?>
-                    
-                    <?php for ($i = max(1, $page - 2); $i <= min($total_pages, $page + 2); $i++): ?>
-                        <a href="?<?= http_build_query(array_merge($_GET, ['page' => $i])) ?>" 
-                           class="page-btn <?= $i === $page ? 'active' : '' ?>">
-                            <?= $i ?>
-                        </a>
-                    <?php endfor; ?>
-                    
-                    <?php if ($page < $total_pages): ?>
-                        <a href="?<?= http_build_query(array_merge($_GET, ['page' => $page + 1])) ?>" class="page-btn">
-                            Next <i class="fas fa-chevron-right"></i>
-                        </a>
-                    <?php endif; ?>
-                </div>
-            </div>
-            <?php endif; ?>
-            
+                  <ul class="pagination-list">
+        <?php if ($page > 1): ?>
+            <li><a href="?<?= http_build_query(array_merge($_GET, ['page' => 1])) ?>">First</a></li>
+            <li><a href="?<?= http_build_query(array_merge($_GET, ['page' => $page - 1])) ?>">Prev</a></li>
+        <?php endif; ?>
+
+        <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+            <li>
+                <a class="<?= $page == $i ? 'active' : '' ?>" 
+                   href="?<?= http_build_query(array_merge($_GET, ['page' => $i])) ?>">
+                   <?= $i ?>
+                </a>
+            </li>
+        <?php endfor; ?>
+
+        <?php if ($page < $total_pages): ?>
+            <li><a href="?<?= http_build_query(array_merge($_GET, ['page' => $page + 1])) ?>">Next</a></li>
+            <li><a href="?<?= http_build_query(array_merge($_GET, ['page' => $total_pages])) ?>">Last</a></li>
+        <?php endif; ?>
+    </ul>
+</div>
+<?php endif; ?>         
             <?php endif; ?>
         </div>
     </div>
@@ -975,4 +1029,6 @@ function printOrder(orderId) {
     window.open(`print_order.php?id=${orderId}`, '_blank');
 }
 </script>
-<?php include '../includes/footer.php'; ?>
+
+
+<?php include '../includes/admin_footer.php'; ?>

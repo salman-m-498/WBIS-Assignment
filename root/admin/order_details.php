@@ -2,6 +2,7 @@
 session_start();
 require_once '../includes/db.php';
 require_once '../includes/functions.php'; 
+require_once 'send_status_email.php';
 
 // Check if user is admin
 if (!isset($_SESSION['admin_id']) || $_SESSION['admin_role'] !== 'admin') {
@@ -14,6 +15,15 @@ if (!$order_id) {
     header('Location: orders.php');
     exit;
 }
+
+$allowed_transitions = [
+    'pending'           => ['processing', 'cancel_requested'],
+    'processing'        => ['shipped', 'cancel_requested'],
+    'shipped'           => ['delivered'],
+    'cancel_requested'  => ['cancelled'],
+    'delivered'         => [],
+    'cancelled'         => []
+];
 
 $stmt = $pdo->prepare("SELECT * FROM orders WHERE order_id = ?");
 $stmt->execute([$order_id]);
@@ -35,6 +45,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception("Invalid status");
             }
 
+            // Prevent updates if already cancelled
+            $stmt = $pdo->prepare("SELECT order_status FROM orders WHERE order_id = ?");
+            $stmt->execute([$order_id]);
+            $current_status = $stmt->fetchColumn();
+
+            if ($current_status === 'cancelled' && $new_status !== 'cancelled') {
+                throw new Exception("This order is already cancelled and cannot be changed.");
+            }
+
             $stmt = $pdo->prepare("
                 UPDATE orders 
                 SET order_status = ?, updated_at = NOW() 
@@ -42,22 +61,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ");
             $stmt->execute([$new_status, $order_id]);
 
-            $_SESSION['success_message'] = "Order status updated successfully";
+            sendOrderStatusEmail($pdo, $order_id);
+
+            $_SESSION['success_message'] = "Order status updated successfully. ✉️ Status email sent to customer.";
         }
 
         
             if ($_POST['action'] === 'update_tracking') {
+                if (in_array($order['order_status'], ['shipped', 'delivered'])) {
+                    throw new Exception("Tracking information cannot be updated once the order is shipped or delivered.");
+                }
             $tracking_number = $_POST['tracking_number'] ?? '';
             $shipping_courier = $_POST['shipping_courier'] ?? '';
 
-             $stmt = $pdo->prepare("
+             if (empty($tracking_number) || empty($shipping_courier)) {
+                throw new Exception("Tracking info is required.");
+            }
+
+              $stmt = $pdo->prepare("
                 UPDATE orders 
-                SET tracking_number = ?, shipping_courier = ?, updated_at = NOW() 
+                SET order_status = 'shipped',
+                    tracking_number = ?, 
+                    shipping_courier = ?, 
+                    updated_at = NOW() 
                 WHERE order_id = ?
             ");
             $stmt->execute([$tracking_number, $shipping_courier, $order_id]);
+            sendOrderStatusEmail($pdo, $order_id);
 
-            $_SESSION['success_message'] = "Tracking info updated successfully";
+            $_SESSION['success_message'] = "Tracking info updated successfully ✉️ Emails sent to customers.";
         }
 
     if ($_POST['action'] === 'process_refund') {
@@ -114,6 +146,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $pdo->prepare("UPDATE orders SET order_status = 'cancelled', updated_at = NOW() WHERE order_id = ?");
         $stmt->execute([$order_id]);
 
+        $stmt = $pdo->prepare("
+        SELECT o.*,
+           u.username,
+           u.email,
+           pay.payment_method,
+           pay.payment_status,
+           pay.transaction_id
+        FROM orders o
+        JOIN `user` u ON o.user_id = u.user_id
+        LEFT JOIN payments pay ON pay.order_id = o.order_id
+        WHERE o.order_id = ?
+       ");
+        $stmt->execute([$order_id]);
+        $order = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        $stmt = $pdo->prepare("
+            SELECT oi.*, p.name as product_name, p.sku, p.image
+            FROM order_items oi
+            JOIN products p ON oi.product_id = p.product_id
+            WHERE oi.order_id = ?
+        ");
+        $stmt->execute([$order_id]);
+        $order_items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $order['order_status'] = 'cancelled';
+        $order['refund_amount'] = $refund_amount;
+        $order['refund_method'] = $refund_method;
+
+        sendStatusEmail($order, $order_items);
+
         $_SESSION['success_message'] = "Refund of RM" . number_format($refund_amount, 2) . " processed successfully.";
     } catch (Exception $e) {
         $_SESSION['error_message'] = "Refund failed: " . $e->getMessage();
@@ -136,16 +198,17 @@ try {
     $stmt = $pdo->prepare("
     SELECT o.*, 
            u.username, u.email, u.role,
-           up.first_name, up.last_name, up.phone,
-           pay.payment_method, pay.payment_status, pay.transaction_id
+           pay.payment_method, pay.payment_status, pay.transaction_id,
+           v.code AS voucher_code, v.description AS voucher_description, 
+           v.discount_type, v.discount_value
     FROM orders o
     JOIN user u ON o.user_id = u.user_id
-    LEFT JOIN user_profiles up ON u.user_id = up.user_id
     LEFT JOIN payments pay ON o.payment_id = pay.payment_id
+    LEFT JOIN vouchers v ON o.voucher_id = v.voucher_id
     WHERE o.order_id = ?
 ");
-    $stmt->execute([$order_id]);
-    $order = $stmt->fetch(PDO::FETCH_ASSOC);
+$stmt->execute([$order_id]);
+$order = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if (!$order) {
         header('Location: orders.php');
@@ -186,7 +249,7 @@ try {
 $page_title = "Order #" . $order['order_number'];
 $page_description = "Order details and management";
 
-include '../includes/header.php';
+include '../includes/admin_header.php';
 ?>
 
 <!-- Flash Messages -->
@@ -356,18 +419,26 @@ include '../includes/header.php';
                                 <?php endforeach; ?>
                             </tbody>
                             <tfoot>
-                                <tr class="total-row">
-                                    <td colspan="4"><strong>Total:</strong></td>
+                                 <tr class="total-row">
+                                    <td colspan="4"><strong>Subtotal:</strong></td>
                                     <td><strong>RM<?= number_format($order['subtotal'], 2) ?></strong></td>
                                 </tr>
                                 <tr class="total-row">
                                     <td colspan="4"><strong>Shipping:</strong></td>
                                     <td><strong>RM<?= number_format($order['shipping_cost'], 2) ?></strong></td>
                                 </tr>
+                                <?php if (!empty($order['voucher_code'])): ?>
+                                <tr class="total-row">
+                                    <td colspan="4"><strong>Voucher:</strong></td>
+                                    <td><strong><?= htmlspecialchars($order['voucher_code']) ?></strong></td>
+                                </tr>
+                                <?php endif; ?>
+                                <?php if ($order['discount_amount'] > 0): ?>
                                 <tr class="total-row">
                                     <td colspan="4"><strong>Discount:</strong></td>
                                     <td><strong>-RM<?= number_format($order['discount_amount'], 2) ?></strong></td>
                                 </tr>
+                                <?php endif; ?>
                                 <tr class="total-row">
                                     <td colspan="4"><strong>Total:</strong></td>
                                     <td><strong>RM<?= number_format($order['total_amount'], 2) ?></strong></td>
@@ -390,17 +461,48 @@ include '../includes/header.php';
             <div class="form-group">
                 <label for="new_status">Order Status:</label>
                 <select id="new_status" name="new_status" required>
-                    <option value="pending" <?= $order['order_status'] === 'pending' ? 'selected' : '' ?>>Pending</option>
-                    <option value="processing" <?= $order['order_status'] === 'processing' ? 'selected' : '' ?>>Processing</option>
-                    <option value="shipped" <?= $order['order_status'] === 'shipped' ? 'selected' : '' ?>>Shipped</option>
-                    <option value="delivered" <?= $order['order_status'] === 'delivered' ? 'selected' : '' ?>>Delivered</option>
-                    <option value="cancel_requested" <?= $status_filter === 'cancel_requested' ? 'selected' : '' ?>>Cancel Requested</option>
-                    <option value="cancelled" <?= $order['order_status'] === 'cancelled' ? 'selected' : '' ?>>Cancelled</option>
+                    <?php foreach ($allowed_transitions[$order['order_status']] as $next_status): ?>
+                    <option value="<?= htmlspecialchars($next_status) ?>">
+                        <?= ucfirst(str_replace('_', ' ', $next_status)) ?>
+                    </option>
+                <?php endforeach; ?>
                 </select>
             </div>
             
             <button type="submit" class="btn btn-primary">
                 <i class="fas fa-save"></i> Update Status
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="detail-card tracking-form-container" id="tracking-form-container" style="display:none;">
+    <div class="card-header">
+        <h3><i class="fas fa-truck"></i> Enter Tracking Info</h3>
+    </div>
+    <div class="card-content">
+        <form method="POST" class="tracking-form">
+            <input type="hidden" name="action" value="update_tracking">
+
+            <div class="form-group">
+                <label for="tracking_number">Tracking Number:</label>
+                <input type="text" id="tracking_number" name="tracking_number" required>
+            </div>
+
+            <div class="form-group">
+                <label for="shipping_courier">Shipping Courier:</label>
+                <select id="shipping_courier" name="shipping_courier" required>
+                    <option value="">Select Courier</option>
+                    <option value="pos_laju">Pos Laju</option>
+                    <option value="gdex">GDEX</option>
+                    <option value="dhl">DHL</option>
+                    <option value="fedex">FedEx</option>
+                    <option value="citylink">City-Link</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-check"></i> Confirm & Mark as Shipped
             </button>
         </form>
     </div>
@@ -485,6 +587,7 @@ include '../includes/header.php';
 <?php endif; ?>
 
             <!-- Tracking Information -->
+             <?php if (in_array($order['order_status'], ['shipped', 'delivered'])): ?>
             <div class="detail-card tracking-info">
                  <div class="card-header">
                      <h3><i class="fas fa-truck"></i> Tracking Information</h3>
@@ -497,12 +600,14 @@ include '../includes/header.php';
                 <label for="tracking_number">Tracking Number:</label>
                 <input type="text" id="tracking_number" name="tracking_number" 
                        value="<?= htmlspecialchars($order['tracking_number'] ?? '') ?>"
-                       placeholder="Enter tracking number...">
+                       placeholder="Enter tracking number..."
+                       <?= in_array($order['order_status'], ['shipped', 'delivered']) ? 'disabled' : '' ?>>
             </div>
             
             <div class="form-group">
                 <label for="shipping_courier">Shipping Courier:</label>
-                <select id="shipping_courier" name="shipping_courier">
+                <select id="shipping_courier" name="shipping_courier"
+                    <?= in_array($order['order_status'], ['shipped', 'delivered']) ? 'disabled' : '' ?>>
                     <option value="">Select Courier</option>
                     <option value="pos_laju" <?= ($order['shipping_courier'] ?? '') === 'pos_laju' ? 'selected' : '' ?>>Pos Laju</option>
                     <option value="gdex" <?= ($order['shipping_courier'] ?? '') === 'gdex' ? 'selected' : '' ?>>GDEX</option>
@@ -515,6 +620,7 @@ include '../includes/header.php';
             <button type="submit" class="btn btn-outline">
                 <i class="fas fa-save"></i> Update Tracking
             </button>
+             <?php endif; ?>
         </form>
     </div>
 </div>    
@@ -615,27 +721,36 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Status change confirmation
-    const statusForm = document.querySelector('.status-form');
-    if (statusForm) {
-        statusForm.addEventListener('submit', function(e) {
-            const newStatus = document.getElementById('new_status').value;
-            const currentStatus = '<?= $order['order_status'] ?>';
-            
-            if (newStatus === 'cancelled' && currentStatus !== 'cancelled') {
-                if (!confirm('Are you sure you want to cancel this order? This action should be carefully considered.')) {
-                    e.preventDefault();
-                    return;
-                }
+   const statusForm = document.querySelector('.status-form');
+if (statusForm) {
+    statusForm.addEventListener('submit', function(e) {
+        const newStatus = document.getElementById('new_status').value;
+        const currentStatus = '<?= $order['order_status'] ?>';
+
+        if (newStatus === 'shipped') {
+            e.preventDefault(); // stop normal submit
+            showTrackingForm(); // custom function to reveal tracking form
+            return;
+        }
+
+        if (newStatus === 'cancelled' && currentStatus !== 'cancelled') {
+            if (!confirm('Are you sure you want to cancel this order?')) {
+                e.preventDefault();
             }
-            
-            if (newStatus === 'delivered' && currentStatus !== 'delivered') {
-                if (!confirm('Mark this order as delivered? This will notify the customer.')) {
-                    e.preventDefault();
-                    return;
-                }
+        }
+
+        if (newStatus === 'delivered' && currentStatus !== 'delivered') {
+            if (!confirm('Mark this order as delivered?')) {
+                e.preventDefault();
             }
-        });
-    }
+        }
+    });
+}
+
+function showTrackingForm() {
+    document.getElementById('tracking-form-container').style.display = 'block';
+}
+
 });
 
 // Keyboard shortcuts
@@ -660,4 +775,4 @@ function toggleRefundForm() {
 
 </script>
 
-<?php include '../includes/footer.php'; ?>
+<?php include '../includes/admin_footer.php'; ?>

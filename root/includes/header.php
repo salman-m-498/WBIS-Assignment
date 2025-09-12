@@ -77,7 +77,7 @@ $mainCategories = $navStmt->fetchAll(PDO::FETCH_ASSOC);
                 </div>
                 
                 <div class="search-bar">
-                    <form action="search.php" method="GET">
+                    <form action="<?php echo $root_path; ?>public/search.php" method="GET">
                         <input type="text" name="q" placeholder="Search for toys, games, and more..." value="<?php echo isset($_GET['q']) ? htmlspecialchars($_GET['q']) : ''; ?>">
                         <button type="submit"><i class="fas fa-search"></i></button>
                     </form>
@@ -133,13 +133,14 @@ $mainCategories = $navStmt->fetchAll(PDO::FETCH_ASSOC);
         </li>
         <li><a href="<?php echo $root_path; ?>public/new_arrivals.php">New Arrivals</a></li>
         <li><a href="<?php echo $root_path; ?>public/sale.php">Sale</a></li>
-        <li><a href="<?php echo $root_path; ?>public/brands.php">Brands</a></li>
+        <li><a href="<?php echo $root_path; ?>public/vouchers.php">Vouchers</a></li>
         <li><a href="<?php echo $root_path; ?>public/about.php">About Us</a></li>
         <li><a href="<?php echo $root_path; ?>public/contact.php">Contact</a></li>
     </ul>
 </nav>
         </div>
     </header>
+
 
     <!-- Breadcrumb -->
     <?php if (isset($show_breadcrumb) && $show_breadcrumb): ?>

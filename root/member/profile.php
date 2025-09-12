@@ -25,7 +25,7 @@ if (!$user) die("User not found.");
 
 // Always build full path for display
 $profilePicPath = !empty($user['profile_pic'])
-    ? '/assets/images/profile_pictures/' . $user['profile_pic']
+    ? $user['profile_pic']
     : '/assets/images/profile_pictures/default_profile_pic.jpg';
 
 include '../includes/header.php';
@@ -54,7 +54,14 @@ include '../includes/header.php';
                 <p><strong>First Name:</strong> <?= htmlspecialchars($user['first_name']) ?></p>
                 <p><strong>Last Name:</strong> <?= htmlspecialchars($user['last_name']) ?></p>
                 <p><strong>Phone:</strong> <?= htmlspecialchars($user['phone']) ?></p>
-                <p><strong>Home Address:</strong> <?= htmlspecialchars($user['address']) ?></p>
+                <p><strong>Home Address:</strong> <?= htmlspecialchars($user['address_line1']) ?>
+                <?php if (!empty($user['address_line2'])): ?>
+                    , <?= htmlspecialchars($user['address_line2']) ?>
+                <?php endif; ?>
+                , <?= htmlspecialchars($user['city']) ?>
+                , <?= htmlspecialchars($user['state']) ?>
+                , <?= htmlspecialchars($user['postal_code']) ?>
+               </p>
                 <p><strong>Birth Date:</strong> <?= htmlspecialchars($user['date_of_birth']) ?></p>
             </div>
         </div>
@@ -63,7 +70,10 @@ include '../includes/header.php';
             <a href="profile_edit.php" class="btn btn-edit">Edit Profile</a>
             <a href="change_password.php" class="btn btn-password">Change Password</a>
             <a href="../public/logout.php" class="btn btn-logout" onclick="return confirm('Are you sure you want to log out?');">Log Out</a>
-            <a href="delete_account.php" class="btn btn-delete" onclick="return confirm('Are you sure you want to delete your account? This cannot be undone.')">Delete Account</a>
+            <form action="delete_account.php" method="POST" class="delete-account-form" onsubmit="return confirm('Are you sure you want to delete your account? This cannot be undone.')">
+                <input type="hidden" name="confirm_delete" value="1">
+                <button type="submit" class="btn btn-delete">Delete Account</button>
+            </form>
         </div>
     </div>
 </div>

@@ -106,15 +106,17 @@ $refund = $stmt->fetch(PDO::FETCH_ASSOC);
 $stmt = $pdo->prepare("
      SELECT o.*, 
            u.username AS user_name, u.email AS user_email,
-           pay.payment_method, pay.payment_status, pay.transaction_id
+           pay.payment_method, pay.payment_status, pay.transaction_id,
+           v.code AS voucher_code, v.description AS voucher_description, 
+           v.discount_type, v.discount_value
     FROM orders o
     JOIN user u ON o.user_id = u.user_id
     LEFT JOIN payments pay ON o.payment_id = pay.payment_id
+    LEFT JOIN vouchers v ON o.voucher_id = v.voucher_id
     WHERE o.order_id=? AND o.user_id=?
 ");
 $stmt->execute([$order_id, $user_id]);
 $order = $stmt->fetch(PDO::FETCH_ASSOC);
-
 if (!$order) {
     header('Location: orders.php');
     exit;
@@ -303,10 +305,19 @@ include '../includes/header.php';
                         <span>Shipping:</span>
                         <span><?= $order['shipping_cost'] == 0 ? 'FREE' : 'RM' . number_format($order['shipping_cost'], 2) ?></span>
                     </div>
+                    <?php if (!empty($order['voucher_code'])): ?>
+                    <div class="total-row">
+                        <span>Voucher:</span>
+                        <span><?= htmlspecialchars($order['voucher_code']) ?>
+                    </span>
+                </div>
+                <?php endif; ?>
+
+
                     <?php if ($order['discount_amount'] > 0): ?>
-                    <div class="total-row discount">
+                    <div class="total-row">
                         <span>Discount:</span>
-                        <span>-RM<?= number_format($order['discount_amount'], 2) ?></span>
+                        <span class="discount-text">-RM<?= number_format($order['discount_amount'], 2) ?></span>
                     </div>
                     <?php endif; ?>
                     <div class="total-row final">
@@ -377,11 +388,10 @@ include '../includes/header.php';
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Refund Info -->
+             <!-- Refund Info -->
     <?php if($refund): ?>
-        <div class="refund-info-card">
+        <div class="order-totals-card refund-info-card">
             <h3>Refund Information</h3>
             <div class="refund-details">
             <p>Status:
@@ -400,8 +410,10 @@ include '../includes/header.php';
     </div>
 </div>
 <?php endif; ?>
-</section>
 
+        </div> <!-- closes .order-content -->
+    </div> <!-- closes .container -->
+</section>
 <?php if ($order['order_status'] === 'pending'): ?>
 <!-- Cancel Order Modal -->
 <div id="cancel-modal">

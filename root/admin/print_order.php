@@ -23,10 +23,15 @@ $stmt = $pdo->prepare("
            u.username, u.email,
            pay.payment_method,
            pay.payment_status,
-           pay.transaction_id
+           pay.transaction_id,
+           v.code AS voucher_code,
+           v.description AS voucher_description,
+           v.discount_type,
+           v.discount_value
     FROM orders o
     JOIN user u ON o.user_id = u.user_id
     LEFT JOIN payments pay ON o.payment_id = pay.payment_id
+    LEFT JOIN vouchers v ON o.voucher_id = v.voucher_id
     WHERE o.order_id = ?
 ");
 $stmt->execute([$order_id]);
@@ -220,11 +225,34 @@ $summaryHtml = '
 
 <table class="summary-table" cellpadding="4" cellspacing="0" width="100%">
 <tr>
-  <th width="80%">Total Amount</th>
-  <td width="20%">RM ' . number_format($order['total_amount'], 2) . '</td>
+  <th width="80%">Subtotal</th>
+  <td width="20%">RM ' . number_format($order['subtotal'], 2) . '</td>
 </tr>
-</table>
-';
+<tr>
+  <th>Shipping</th>
+  <td>RM ' . number_format($order['shipping_cost'], 2) . '</td>
+</tr>';
+
+if (!empty($order['voucher_code'])) {
+    $summaryHtml .= '
+    <tr>
+      <th>Voucher (' . htmlspecialchars($order['voucher_code']) . ')</th>
+      <td>-RM ' . number_format($order['discount_amount'], 2) . '</td>
+    </tr>';
+} elseif ($order['discount_amount'] > 0) {
+    $summaryHtml .= '
+    <tr>
+      <th>Discount</th>
+      <td>-RM ' . number_format($order['discount_amount'], 2) . '</td>
+    </tr>';
+}
+
+$summaryHtml .= '
+<tr>
+  <th><strong>Total Amount</strong></th>
+  <td><strong>RM ' . number_format($order['total_amount'], 2) . '</strong></td>
+</tr>
+</table>';
 $pdf->writeHTML($summaryHtml, true, false, true, false, '');
 
 // Footer

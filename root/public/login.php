@@ -142,22 +142,7 @@ include '../includes/header.php';
                         </div>
                     </div>
                 </div>
-                
-                <!-- Customer Testimonial -->
-                <div class="customer-testimonial">
-                    <div class="testimonial-content">
-                        <p>"I love how easy it is to shop and track my orders. The customer service is amazing!"</p>
-                        <div class="testimonial-author">
-                            <div class="customer-avatar">
-                                <i class="fas fa-user-circle"></i>
-                            </div>
-                            <div>
-                                <h4>Sarah Johnson</h4>
-                                <span>Verified Customer</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            
             </div>
         </div>
     </div>

@@ -181,7 +181,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-include '../includes/header.php';
+include '../includes/admin_header.php';
 ?>
 
 <section class="admin-section">
@@ -414,6 +414,6 @@ function updateFileInput() {
 
 
 <?php
-include '../includes/footer.php';
+include '../includes/admin_footer.php';
 ?>
 

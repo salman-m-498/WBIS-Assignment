@@ -18,7 +18,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $role               = $_POST['role'];           
     $first_name         = $_POST['first_name'];     
     $last_name          = $_POST['last_name'];
-    $homeAddress        = $_POST['address'];
+    $address_line1      = $_POST['address_line1'];
+    $address_line2      = $_POST['address_line2'];
+    $city               = $_POST['city'];
+    $state              = $_POST['state'];
+    $postal_code        = $_POST['postal_code'];
     $phone              = $_POST['phone'];
     $newsLetterSub      = isset($_POST['newsletter_subscription']) ? 1 : 0;
     $marketingEmails    = isset($_POST['marketing_emails']) ? 1 : 0;
@@ -31,10 +35,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Update user_profiles table
     $updateProfilesSql = "UPDATE user_profiles 
-                          SET first_name = ?, last_name = ?, address = ?, phone = ?, newsletter_subscription = ?, marketing_emails = ?, date_of_birth = ?
+                          SET first_name = ?, last_name = ?, address_line1 = ?, address_line2 = ?, city = ?, state = ?, postal_code = ?, phone = ?, newsletter_subscription = ?, marketing_emails = ?, date_of_birth = ?
                           WHERE user_id = ?";
     $stmt = $pdo->prepare($updateProfilesSql);
-    $stmt->execute([$first_name, $last_name, $homeAddress, $phone, $newsLetterSub, $marketingEmails, $dateOfBirth, $userId]);
+    $stmt->execute([$first_name, $last_name, $address_line1, $address_line2, $city, $state, $postal_code, $phone, $newsLetterSub, $marketingEmails, $dateOfBirth, $userId]);
 
     $message = "User updated successfully!";
     header("Location: member_edit.php?id=" . urlencode($userId) . "&updated=1");
@@ -60,8 +64,8 @@ include '../includes/header.php';
 <div class="container" style="max-width:600px; margin-top:30px;">
     <h2>Edit User Profile</h2>
 
-    <?php if (!empty($message)) : ?>
-        <p style="color:green;"><?= $message ?></p>
+    <?php if (isset($_GET['updated'])) : ?>
+        <p style="color:green;">User updated successfully!</p>
     <?php endif; ?>
 
     <form method="post">
@@ -93,9 +97,26 @@ include '../includes/header.php';
             <input type="text" name="email" value="<?= htmlspecialchars($user['email']) ?>" style="width:100%; padding:5px;">
         </div>
 
+        <h4>Address</h4>
         <div style="margin-bottom:10px;">
-            <label><strong>Home address:</strong></label>
-            <input type="text" name="address" value="<?= htmlspecialchars($user['address']) ?>" style="width:100%; padding:5px;">
+            <label>Address Line 1:</label>
+            <input type="text" name="address_line1" value="<?= htmlspecialchars($user['address_line1'] ?? '') ?>" style="width:100%; padding:5px;">
+        </div>
+        <div style="margin-bottom:10px;">
+            <label>Address Line 2:</label>
+            <input type="text" name="address_line2" value="<?= htmlspecialchars($user['address_line2'] ?? '') ?>" style="width:100%; padding:5px;">
+        </div>
+        <div style="margin-bottom:10px;">
+            <label>City:</label>
+            <input type="text" name="city" value="<?= htmlspecialchars($user['city'] ?? '') ?>" style="width:100%; padding:5px;">
+        </div>
+        <div style="margin-bottom:10px;">
+            <label>State:</label>
+            <input type="text" name="state" value="<?= htmlspecialchars($user['state'] ?? '') ?>" style="width:100%; padding:5px;">
+        </div>
+        <div style="margin-bottom:10px;">
+            <label>Postal Code:</label>
+            <input type="text" name="postal_code" value="<?= htmlspecialchars($user['postal_code'] ?? '') ?>" style="width:100%; padding:5px;">
         </div>
 
         <div style="margin-bottom:10px;">
@@ -129,3 +150,5 @@ include '../includes/header.php';
 </div>
 
 <div style="height:100px;"></div>
+
+<?php include '../includes/admin_footer.php'; ?>

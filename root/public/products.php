@@ -14,6 +14,7 @@ if (isset($_GET['category_id'])) {
     $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
+$category = $_GET['category_id'] ?? $_GET['category'] ?? '';
 
 // Page variables
 $page_title = "Products";
@@ -24,9 +25,8 @@ $breadcrumb_items = [
 ];
 
 // Get filter parameters
-$category = isset($_GET['category']) ? $_GET['category'] : '';
-$sort = isset($_GET['sort']) ? $_GET['sort'] : 'name';
-$price_range = isset($_GET['price_range']) ? $_GET['price_range'] : '';
+$sort = $_GET['sort'] ?? 'name';
+$price_range = $_GET['price_range'] ?? '';
 $price_min = '';
 $price_max = '';
 
@@ -90,9 +90,6 @@ $total_products = $count_stmt->fetchColumn();
 $total_pages = ceil($total_products / $per_page);
 
 // Fetch products
-$per_page = (int)$per_page;
-$offset = (int)$offset;
-
 $sql = "SELECT * FROM products WHERE $where_sql ORDER BY $sort_sql LIMIT $per_page OFFSET $offset";
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
@@ -101,6 +98,8 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 <?php include '../includes/header.php'; ?>
 
+<!-- Flash message container --> 
+ <div id="flash-message" style="display:none; position: fixed; top: 20px; right: 20px; min-width: 200px; padding: 12px 18px; border-radius: 8px; font-size: 14px; z-index: 9999; box-shadow: 0 4px 8px #000;"> </div>
 <!-- Page Header -->
 <section class="page-header" style="background: linear-gradient(to right, #fddde6, #fceabb); padding: 3em 0; border-radius: 0 0 50px 50px;">
     <div class="container">
@@ -147,7 +146,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     <img src="/<?= htmlspecialchars($image_path) ?>" alt="<?= htmlspecialchars($product['name']) ?>">
                                 </a>
                                <div class="product-overlay">
-                                 <button class="quick-view" data-product-id="<?= $product['product_id'] ?>">Quick View</button>
+                                 <button class="quick-view" onclick="window.location='<?= $product_url ?>'">Quick View</button>
                                  <button class="add-to-wishlist <?= $isIn ? 'in-wishlist' : '' ?>" data-product-id="<?= $product['product_id'] ?>"><i class="<?= $isIn ? 'fas fa-heart' : 'far fa-heart' ?>"></i></button>
                                 </div>
                                <?php if ($product['sale_price'] < $product['price']): ?>

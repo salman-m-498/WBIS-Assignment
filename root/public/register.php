@@ -9,6 +9,7 @@ $breadcrumb_items = [
     ['url' => 'register.php', 'title' => 'Register']
 ];
 
+
 // Include header
 include '../includes/header.php';
 ?>

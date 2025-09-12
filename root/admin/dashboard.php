@@ -16,7 +16,7 @@ $breadcrumb_items = [
 ];
 
 // Include header
-include '../includes/header.php';
+include '../includes/admin_header.php';
 ?>
 
 <!-- Admin Dashboard Section -->
@@ -89,6 +89,18 @@ include '../includes/header.php';
                     <a href="reviews.php" class="btn btn-primary">Manage Categories</a>
                 </div>
             </div>
+
+            <div class="dashboard-card">
+                <div class="card-icon">
+                    <i class="fas fa-ticket-alt"></i>
+                </div>
+                <div class="card-content">
+                    <h3>Vouchers</h3>
+                    <p>Manage discount vouchers and promotions</p>
+                    <a href="vouchers.php" class="btn btn-primary">Manage Vouchers</a>
+                </div>
+            </div>
+        </div>
         </div>
         
         <div class="admin-info">
@@ -113,5 +125,5 @@ include '../includes/header.php';
 
 <?php
 // Include footer
-include '../includes/footer.php';
+include '../includes/admin_footer.php';
 ?>

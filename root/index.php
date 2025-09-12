@@ -28,7 +28,7 @@ $reviews_stmt = $pdo->prepare("
     SELECT r.review_id, r.title, r.comment, r.rating, r.created_at, u.username, u.profile_pic
     FROM reviews r
     JOIN user u ON r.user_id = u.user_id
-    WHERE r.status = 'pending'
+    WHERE r.status = 'approved'
     ORDER BY r.created_at DESC
     LIMIT 6
 ");
@@ -44,6 +44,9 @@ $show_breadcrumb = false;
 // Include header
 include 'includes/header.php';
 ?>
+
+<!-- Flash message container -->
+<div id="flash-message" style="display:none; position: fixed; top: 20px; right: 20px; min-width: 200px; padding: 12px 18px; border-radius: 8px; font-size: 14px; z-index: 9999; box-shadow: 0 4px 8px rgba(0,0,0,0.2);"></div>
 
 <!-- Hero Section -->
 <section class="hero-section">
@@ -117,7 +120,6 @@ include 'includes/header.php';
             <div class="banner-content">
                 <h3>Build Your Dreams with LEGO</h3>
                 <p>Endless creativity and imagination await with our premium LEGO collection</p>
-                <!-- TODO: Change link to redirect to LEGO category when categories are set up -->
                 <a href="public/products.php" class="banner-btn">Explore LEGO Sets</a>
             </div>
         </div>
@@ -173,7 +175,6 @@ include 'includes/header.php';
                     <div class="banner-content">
                         <h3>Discover Barbie's Magical World</h3>
                         <p>Fashion, fun, and endless adventures with the world's most beloved doll</p>
-                        <!-- TODO: Change link to redirect to Barbie category when categories are set up -->
                         <a href="public/products.php" class="banner-btn">Shop Barbie Collection</a>
                     </div>
                 </div>
@@ -189,7 +190,6 @@ include 'includes/header.php';
                     <div class="banner-content">
                         <h3>Hot Wheels Racing</h3>
                         <p>Speed into action with premium die-cast cars</p>
-                        <!-- TODO: Change link to redirect to Hot Wheels category when categories are set up -->
                         <a href="public/products.php" class="banner-btn">Race Now</a>
                     </div>
                 </div>
@@ -204,7 +204,6 @@ include 'includes/header.php';
                     <div class="banner-content">
                         <h3>LEGO Adventures</h3>
                         <p>Build, create, and explore infinite possibilities</p>
-                        <!-- TODO: Change link to redirect to LEGO category when categories are set up -->
                         <a href="public/products.php" class="banner-btn">Build Dreams</a>
                     </div>
                 </div>
@@ -233,7 +232,7 @@ include 'includes/header.php';
                             <img src="<?= htmlspecialchars($image_path) ?>" alt="<?= htmlspecialchars($product['name']) ?>">
                         </a>
                         <div class="product-overlay">
-                            <button class="quick-view" data-product-id="<?= $product['product_id'] ?>">Quick View</button>
+                            <button class="quick-view" onclick="window.location='<?= $product_url ?>'">Quick View</button>
                             <button class="add-to-wishlist" data-product-id="<?= $product['product_id'] ?>"><i class="far fa-heart"></i></button>
                         </div>
                         <?php if ($product['sale_price'] < $product['price']): ?>
@@ -333,7 +332,9 @@ include 'includes/header.php';
                         <p><?= htmlspecialchars($review['comment']) ?></p>
                     </div>
                     <div class="testimonial-author">
-                        <img src="<?= htmlspecialchars(!empty($review['profile_pic']) ? $profile_base_path . $review['profile_pic'] : 'assets/images/default-customer.jpg') ?>" 
+                        <img src="<?= htmlspecialchars(!empty($review['profile_pic']) 
+                        ? $review['profile_pic'] 
+                        :  '/assets/images/profile_pictures/default_profile_pic.jpg') ?>"
                              alt="<?= htmlspecialchars($review['username']) ?>">
                         <div class="author-info">
                             <h4><?= htmlspecialchars($review['username']) ?></h4>
@@ -350,21 +351,59 @@ include 'includes/header.php';
     </div>
 </section>
 
-<!-- Newsletter Section -->
-<section class="newsletter-section">
-    <div class="container">
-        <div class="newsletter-content">
-            <h2>Stay Updated</h2>
-            <p>Subscribe to our newsletter for exclusive offers and new product announcements</p>
-            <form class="newsletter-form" action="newsletter.php" method="POST">
-                <input type="email" name="email" placeholder="Enter your email address" required>
-                <button type="submit" class="btn btn-primary">Subscribe</button>
-            </form>
-        </div>
-    </div>
-</section>
-
 <script src="/assets/js/cart.js"></script>
+<script>
+function showFlashMessage(message, type = 'success') {
+    const flash = document.getElementById('flash-message');
+    flash.textContent = message;
+    flash.style.display = 'block';
+    flash.style.backgroundColor = (type === 'success') ? '#d4edda' : '#f8d7da';
+    flash.style.color = (type === 'success') ? '#155724' : '#721c24';
+    flash.style.border = (type === 'success') ? '1px solid #c3e6cb' : '1px solid #f5c6cb';
+
+    // Hide after 3 seconds
+    setTimeout(() => {
+        flash.style.display = 'none';
+    }, 3000);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const wishlistButtons = document.querySelectorAll('.add-to-wishlist');
+    
+    wishlistButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const productId = button.dataset.productId;
+
+            fetch('member/toggle-wishlist.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `product_id=${productId}`
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.action === 'added') {
+                        button.innerHTML = '<i class="fas fa-heart"></i>';
+                        button.classList.add('in-wishlist');
+                        showFlashMessage('Added to wishlist!', 'success');
+                    } else if (data.action === 'removed') {
+                        button.innerHTML = '<i class="far fa-heart"></i>';
+                        button.classList.remove('in-wishlist');
+                        showFlashMessage('Removed from wishlist', 'error');
+                    }
+                } else {
+                    showFlashMessage(data.message || 'Something went wrong', 'error');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                showFlashMessage('Unexpected error', 'error');
+            });
+        });
+    });
+});
+</script>
+
 
 <?php
 // Include footer

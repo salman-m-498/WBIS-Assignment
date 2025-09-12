@@ -12,6 +12,10 @@ $user_id = $_SESSION['user_id'];
 
 if (!empty($_POST['selected_items'])) {
     $_SESSION['selected_items'] = $_POST['selected_items'];
+    // Store selected voucher if provided
+    if (isset($_POST['selected_voucher_id'])) {
+        $_SESSION['selected_voucher_id'] = $_POST['selected_voucher_id'];
+    }
 } elseif (!isset($_SESSION['selected_items']) || empty($_SESSION['selected_items'])) {
     // No items selected in POST or session, redirect back to cart
     header('Location: cart.php?error=no_items_selected');
@@ -20,6 +24,7 @@ if (!empty($_POST['selected_items'])) {
 
 // Use the session version for further processing
 $selected_items = $_SESSION['selected_items'];
+$selected_voucher_id = $_SESSION['selected_voucher_id'] ?? '';
 
 $placeholders = implode(',', array_fill(0, count($selected_items), '?'));
 
@@ -54,7 +59,89 @@ if ($subtotal >= 150) {
         $shipping = 8.00; // Shipping fee West Malaysia
     }
 }
-$total = $subtotal + $shipping;
+
+// Initialize discount variables
+$discount_amount = 0;
+$voucher_id = null;
+$voucher_error = '';
+$voucher = null;
+
+// Process voucher if selected
+if (!empty($selected_voucher_id)) {
+    // Validate voucher
+    $voucherStmt = $pdo->prepare("
+        SELECT v.*, uv.user_voucher_id, uv.used_at,
+               (SELECT COUNT(*) FROM user_vouchers WHERE voucher_id = v.voucher_id AND used_at IS NOT NULL) as total_used,
+               (SELECT COUNT(*) FROM user_vouchers WHERE voucher_id = v.voucher_id AND user_id = ? AND used_at IS NOT NULL) as user_used_count
+        FROM vouchers v
+        JOIN user_vouchers uv ON v.voucher_id = uv.voucher_id
+        WHERE v.voucher_id = ? AND uv.user_id = ? AND uv.used_at IS NULL
+        AND v.status = 'active' AND v.start_date <= NOW() AND v.end_date >= NOW()
+    ");
+    $voucherStmt->execute([$user_id, $selected_voucher_id, $user_id]);
+    $voucher = $voucherStmt->fetch(PDO::FETCH_ASSOC);
+    
+    if ($voucher) {
+        // Check all voucher conditions
+        $valid = true;
+        
+        // Check if order amount meets minimum
+        if ($subtotal < $voucher['min_order_amount']) {
+            $voucher_error = "Order amount must be at least RM" . number_format($voucher['min_order_amount'], 2);
+            $valid = false;
+        }
+        
+        // Check per-user limit
+        if ($voucher['user_used_count'] >= $voucher['per_user_limit']) {
+            $voucher_error = "You have exceeded the usage limit for this voucher";
+            $valid = false;
+        }
+        
+        // Check global usage limit
+        if ($voucher['usage_limit'] > 0 && $voucher['total_used'] >= $voucher['usage_limit']) {
+            $voucher_error = "This voucher has reached its usage limit";
+            $valid = false;
+        }
+        
+        if ($valid) {
+            // Calculate discount
+            if ($voucher['discount_type'] === 'percentage') {
+                $discount_amount = ($subtotal * $voucher['discount_value']) / 100;
+            } else {
+                $discount_amount = $voucher['discount_value'];
+            }
+            
+            // Ensure discount doesn't exceed subtotal
+            $discount_amount = min($discount_amount, $subtotal);
+            $voucher_id = $voucher['voucher_id'];
+        }
+    } else {
+        $voucher_error = "Selected voucher is not valid or has already been used";
+    }
+}
+
+$total = $subtotal + $shipping - $discount_amount;
+
+// Get user's available vouchers for display
+$availableVouchersStmt = $pdo->prepare("
+    SELECT v.*, uv.user_voucher_id, uv.collected_at,
+           (SELECT COUNT(*) FROM user_vouchers WHERE voucher_id = v.voucher_id AND user_id = ? AND used_at IS NOT NULL) as user_used_count
+    FROM vouchers v
+    JOIN user_vouchers uv ON v.voucher_id = uv.voucher_id
+    WHERE uv.user_id = ? 
+    AND uv.used_at IS NULL 
+    AND v.status = 'active'
+    AND v.start_date <= NOW() 
+    AND v.end_date >= NOW()
+    ORDER BY v.discount_value DESC
+");
+$availableVouchersStmt->execute([$user_id, $user_id]);
+$available_vouchers = $availableVouchersStmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Filter out vouchers that have reached per-user limit
+$available_vouchers = array_filter($available_vouchers, function($v) {
+    return $v['user_used_count'] < $v['per_user_limit'];
+});
 
 // Get user info
 $stmt = $pdo->prepare("SELECT * FROM user WHERE user_id = ?");
@@ -98,9 +185,80 @@ include '../includes/header.php';
                 <input type="hidden" name="selected_items[]" value="<?= htmlspecialchars($product_id) ?>">
             <?php endforeach; ?>
 
+            <!-- Pass voucher information -->
+            <input type="hidden" name="voucher_id" value="<?= htmlspecialchars($voucher_id ?? '') ?>">
+            <input type="hidden" name="discount_amount" value="<?= htmlspecialchars($discount_amount) ?>">
+
             <div class="checkout-layout">
                 <!-- Checkout Form -->
                 <div class="checkout-form">
+                    <!-- Voucher Selection Section -->
+                    <div class="form-section">
+                        <h2>Apply Voucher</h2>
+                        <?php if (empty($available_vouchers)): ?>
+                            <div class="no-vouchers">
+                                <p style="color: #666; font-size: 14px; margin: 10px 0;">
+                                    No vouchers available. 
+                                    <a href="vouchers.php" style="color: #007bff;">Collect vouchers here!</a>
+                                </p>
+                            </div>
+                        <?php else: ?>
+                            <div class="voucher-selection">
+                                <div class="voucher-option">
+                                    <label>
+                                        <input type="radio" name="selected_voucher" value="" 
+                                               <?= empty($selected_voucher_id) ? 'checked' : '' ?>
+                                               onchange="updateVoucherSelection()">
+                                        <span class="voucher-details">
+                                            <span class="voucher-title">No voucher</span>
+                                            <span class="voucher-desc">Continue without discount</span>
+                                        </span>
+                                    </label>
+                                </div>
+                                
+                                <?php foreach ($available_vouchers as $voucher_option): ?>
+                                    <?php
+                                    $discountText = $voucher_option['discount_type'] == 'percentage' 
+                                        ? $voucher_option['discount_value'] . '% OFF' 
+                                        : 'RM' . number_format($voucher_option['discount_value'], 2) . ' OFF';
+                                    
+                                    $isEligible = $subtotal >= $voucher_option['min_order_amount'];
+                                    $isSelected = $voucher_option['voucher_id'] == $selected_voucher_id;
+                                    ?>
+                                    <div class="voucher-option <?= !$isEligible ? 'disabled' : '' ?>">
+                                        <label>
+                                            <input type="radio" name="selected_voucher" value="<?= $voucher_option['voucher_id'] ?>" 
+                                                   <?= $isSelected ? 'checked' : '' ?>
+                                                   <?= !$isEligible ? 'disabled' : '' ?>
+                                                   data-discount-type="<?= $voucher_option['discount_type'] ?>"
+                                                   data-discount-value="<?= $voucher_option['discount_value'] ?>"
+                                                   data-min-order="<?= $voucher_option['min_order_amount'] ?>"
+                                                   onchange="updateVoucherSelection()">
+                                            <span class="voucher-details">
+                                                <span class="voucher-title">
+                                                    <?= htmlspecialchars($voucher_option['code']) ?> - <?= $discountText ?>
+                                                </span>
+                                                <span class="voucher-desc">
+                                                    <?= htmlspecialchars($voucher_option['description']) ?>
+                                                    <br>
+                                                    <small style="color: <?= $isEligible ? '#28a745' : '#dc3545' ?>;">
+                                                        Min order: RM<?= number_format($voucher_option['min_order_amount'], 2) ?>
+                                                        <?= !$isEligible ? ' (Not eligible)' : '' ?>
+                                                    </small>
+                                                </span>
+                                            </span>
+                                        </label>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                            
+                            <div style="margin-top: 15px;">
+                                <button type="button" id="apply-voucher-btn" class="btn btn-outline">
+                                    Update Voucher
+                                </button>
+                            </div>
+                        <?php endif; ?>
+                    </div>
                     <!-- Contact Information -->
                     <div class="form-section">
                         <h2>Contact Information</h2>
@@ -254,12 +412,12 @@ include '../includes/header.php';
                                 <div class="form-group">
                                     <label for="expiry_date">Expiry Date *</label>
                                     <input type="text" id="expiry_date" name="expiry_date" 
-                                           placeholder="MM/YY" maxlength="5" required>
+                                           placeholder="MM/YY" maxlength="5" required  pattern="^(0[1-9]|1[0-2])\/\d{2}$">
                                 </div>
                                 <div class="form-group">
                                     <label for="cvv">CVV *</label>
                                     <input type="text" id="cvv" name="cvv" 
-                                           placeholder="123" maxlength="4" required>
+                                           placeholder="123" maxlength="3" required>
                                 </div>
                             </div>
                             <div class="form-group">
@@ -313,6 +471,12 @@ include '../includes/header.php';
                                 <span>Shipping:</span>
                                 <span><?= $shipping == 0 ? 'FREE' : 'RM ' . number_format($shipping, 2) ?></span>
                             </div>
+                            <?php if ($discount_amount > 0): ?>
+                            <div class="total-row discount-row">
+                                <span>Discount (<?= htmlspecialchars($voucher['code'] ?? 'Voucher') ?>):</span>
+                                <span>- RM<?= number_format($discount_amount, 2) ?></span>
+                            </div>
+                            <?php endif; ?>
                             <?php if ($subtotal >= 150): ?>
                             <div class="shipping-notice">
                                 <small>🎉 You qualify for free shipping!</small>
@@ -357,17 +521,48 @@ document.addEventListener('DOMContentLoaded', function() {
         const shippingRow = document.querySelector('.summary-totals .total-row:nth-child(2) span:last-child');
         const totalRow = document.querySelector('.summary-totals .final-total span:last-child');
         const subtotal = <?= $subtotal ?>;
+        const discount = <?= $discount_amount ?>;
 
-        // Safety: if critical elements are missing, log and bail
-        if (!form) {
-            console.error('Checkout form not found (id="checkout-form").');
-            return;
-        }
-        if (!submitBtn) {
-            console.error('Submit button .place-order-btn not found.');
-        }
+        // Voucher selection handler
+        document.getElementById('apply-voucher-btn')?.addEventListener('click', function() {
+            const selectedVoucher = document.querySelector('input[name="selected_voucher"]:checked');
+            
+            // Create temporary form to submit voucher selection
+            const tempForm = document.createElement('form');
+            tempForm.method = 'POST';
+            tempForm.action = 'checkout.php';
 
-         function updateShipping() {
+            // Add selected items
+            <?php foreach ($selected_items as $product_id): ?>
+            const item<?= $product_id ?> = document.createElement('input');
+            item<?= $product_id ?>.type = 'hidden';
+            item<?= $product_id ?>.name = 'selected_items[]';
+            item<?= $product_id ?>.value = '<?= $product_id ?>';
+            tempForm.appendChild(item<?= $product_id ?>);
+            <?php endforeach; ?>
+
+            // Add selected voucher
+            const voucherInput = document.createElement('input');
+            voucherInput.type = 'hidden';
+            voucherInput.name = 'selected_voucher_id';
+            voucherInput.value = selectedVoucher ? selectedVoucher.value : '';
+            tempForm.appendChild(voucherInput);
+
+            // Add shipping area if selected
+            if (shippingArea && shippingArea.value) {
+                const shippingInput = document.createElement('input');
+                shippingInput.type = 'hidden';
+                shippingInput.name = 'shipping_area';
+                shippingInput.value = shippingArea.value;
+                tempForm.appendChild(shippingInput);
+            }
+
+            document.body.appendChild(tempForm);
+            tempForm.submit();
+        });
+
+        // Shipping + total updater
+        function updateShipping() {
             let shipping = 0;
             if (subtotal >= 150) {
                 shippingRow.textContent = 'FREE';
@@ -375,7 +570,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 shipping = (shippingArea.value === 'east') ? 12.00 : 8.00;
                 shippingRow.textContent = 'RM ' + shipping.toFixed(2);
             }
-            totalRow.textContent = 'RM ' + (subtotal + shipping).toFixed(2);
+            const total = subtotal + shipping - discount;
+            totalRow.textContent = 'RM ' + total.toFixed(2);
+
+            // Update hidden field
+            const hiddenTotal = document.querySelector('input[name="order_total"]');
+            if (hiddenTotal) hiddenTotal.value = total.toFixed(2);
         }
 
         if (shippingArea) {
@@ -384,9 +584,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
 
-        // Toggle billing address fields
+        // Billing toggle
         if (sameAsShipping && billingFields) {
-            // Initialize: ensure billing fields hidden when checkbox is checked
             function updateBillingVisibility() {
                 if (sameAsShipping.checked) {
                     billingFields.style.display = 'none';
@@ -406,7 +605,7 @@ document.addEventListener('DOMContentLoaded', function() {
             sameAsShipping.addEventListener('change', updateBillingVisibility);
         }
 
-        // Toggle payment method fields
+        // Payment method toggle
         if (paymentMethods && creditCardFields) {
             function updatePaymentVisibility() {
                 const selected = document.querySelector('input[name="payment_method"]:checked');
@@ -418,25 +617,36 @@ document.addEventListener('DOMContentLoaded', function() {
                     creditCardFields.querySelectorAll('input').forEach(field => field.removeAttribute('required'));
                 }
             }
-            // initial
             updatePaymentVisibility();
             paymentMethods.forEach(method => method.addEventListener('change', updatePaymentVisibility));
         }
 
-        // Format card number input
+        // Card number formatter
         if (cardNumber) {
             cardNumber.addEventListener('input', function() {
-                let value = this.value.replace(/\s/g, '').replace(/[^0-9]/gi, '');
-                let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
-                this.value = formattedValue;
+                let value = this.value.replace(/\D/g, '');
+                value = value.substring(0, 16); 
+                this.value = value.replace(/(\d{4})(?=\d)/g, '$1 ');
             });
         }
 
-        // Format expiry date input
+        // Expiry date formatter
         if (expiryDate) {
             expiryDate.addEventListener('input', function() {
                 let value = this.value.replace(/\D/g, '');
                 if (value.length > 4) value = value.slice(0,4);
+                if (value.length >= 2) {
+                    let month = parseInt(value.substring(0, 2), 10);
+
+                    if (month < 1) {
+                        month = 1;
+                    } else if (month > 12) {
+                        month = 12;
+                    }
+
+            value = month.toString().padStart(2, '0') + value.substring(2);
+            }
+
                 if (value.length >= 3) {
                     value = value.substring(0, 2) + '/' + value.substring(2);
                 }
@@ -447,21 +657,18 @@ document.addEventListener('DOMContentLoaded', function() {
         // CVV numeric only
         if (cvv) {
             cvv.addEventListener('input', function() {
-                this.value = this.value.replace(/[^0-9]/g, '');
+                 this.value = this.value.replace(/[^0-9]/g, '').substring(0, 3);
             });
         }
 
-        // Form submit: validate, show loading, then allow native submit
+        // Form submission validation
         form.addEventListener('submit', function(e) {
-            // Validate required fields manually, but do NOT prevent submission unless invalid
             const requiredFields = form.querySelectorAll('[required]');
             let isValid = true;
 
             requiredFields.forEach(field => {
-                // ignore hidden fields
                 const style = window.getComputedStyle(field);
                 if (style.display === 'none' || field.offsetParent === null) {
-                    // field not visible — skip
                     return;
                 }
                 const value = (field.value || '').toString().trim();
@@ -508,8 +715,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
 
+                const [expMonth, expYear] = expiry.split('/').map(Number);
+                if (expMonth < 1 || expMonth > 12) {
+                    e.preventDefault();
+                    alert('Expiry month must be between 01 and 12.');
+                    return;
+                }
+
+
                 const cvvValue = document.getElementById('cvv')?.value || '';
-                if (cvvValue.length < 3 || cvvValue.length > 4) {
+                if (cvvValue.length !== 3) {
                     e.preventDefault();
                     alert('Please enter a valid CVV.');
                     return;
@@ -521,44 +736,39 @@ document.addEventListener('DOMContentLoaded', function() {
             const lastNameField = document.getElementById('last_name');
             const nameRegex = /^[A-Za-z\s]+$/;
 
-            if (firstNameField) {
-            if (!nameRegex.test(firstNameField.value.trim())) {
+            if (firstNameField && !nameRegex.test(firstNameField.value.trim())) {
                 e.preventDefault();
                 alert("First name must contain only letters and spaces.");
                 firstNameField.focus();
-            return;
+                return;
             }
-        }
 
-        if (lastNameField) {
-        if (!nameRegex.test(lastNameField.value.trim())) {
-            e.preventDefault();
-            alert("Last name must contain only letters and spaces.");
-            lastNameField.focus();
-            return;
-        }
-    }
-        // Phone number validation (Malaysia standard)
-        const phoneField = document.getElementById('phone'); // adjust ID if different
-        const phoneRegex = /^01\d{8,9}$/;
+            if (lastNameField && !nameRegex.test(lastNameField.value.trim())) {
+                e.preventDefault();
+                alert("Last name must contain only letters and spaces.");
+                lastNameField.focus();
+                return;
+            }
 
-        if (phoneField) {
-            const phoneValue = phoneField.value.trim();
-        if (!phoneRegex.test(phoneValue)) {
-            e.preventDefault();
-            alert("Please enter a valid Malaysian phone number (e.g. 0123456789 or 01112345678).");
-            phoneField.focus();
-            return;
-        }
-    }
+            // Phone number validation (Malaysia standard)
+            const phoneField = document.getElementById('phone');
+            const phoneRegex = /^01\d{8,9}$/;
+            if (phoneField) {
+                const phoneValue = phoneField.value.trim();
+                if (!phoneRegex.test(phoneValue)) {
+                    e.preventDefault();
+                    alert("Please enter a valid Malaysian phone number (e.g. 0123456789 or 01112345678).");
+                    phoneField.focus();
+                    return;
+                }
+            }
 
-            // If we reach here, form is valid. Show loading state and allow native submit to continue.
+            // Show loading state
             try {
                 if (submitBtn) {
                     submitBtn.innerHTML = 'Processing Order...';
                     submitBtn.disabled = true;
                 }
-                
             } catch (uiErr) {
                 console.error('Error updating UI before submit:', uiErr);
             }
@@ -569,5 +779,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
 
 <?php include '../includes/footer.php'; ?>

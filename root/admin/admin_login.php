@@ -61,6 +61,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <?php echo htmlspecialchars($error); ?>
                             </div>
                         <?php endif; ?>
+                        
+                        <?php if (isset($_SESSION['success'])): ?>
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle"></i>
+                                <?php echo $_SESSION['success']; unset($_SESSION['success']); ?>
+                            </div>
+                        <?php endif; ?>
                     </div>
                     <form class="login-form" method="POST" action="">
                         <div class="form-group">
@@ -80,6 +87,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <i class="fas fa-sign-in-alt"></i> Access Dashboard
                         </button>
                     </form>
+                    
+                    <!-- Forgot Password Link -->
+                    <div class="signup-link">
+                        <p>Forgot your password? <a href="admin_forgot_password.php">Reset Admin Password</a></p>
+                    </div>
                 </div>
             </div>
         </div>

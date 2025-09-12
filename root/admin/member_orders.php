@@ -65,7 +65,7 @@ foreach ($orders as $o) {
     }
 }
 
-include '../includes/header.php';
+include '../includes/admin_header.php';
 ?>
 
 <div class="container" style="margin-top:30px;">
@@ -108,7 +108,7 @@ include '../includes/header.php';
     <?php endforeach; ?>
     </div>
 
-    <table class="orders-table">
+    <table class="admin-table">
         <thead>
             <tr>
                 <th>Order ID</th>
@@ -134,4 +134,4 @@ include '../includes/header.php';
     </table>
 </div>
 
-<?php include '../includes/footer.php'; ?>
+<?php include '../includes/admin_footer.php'; ?>

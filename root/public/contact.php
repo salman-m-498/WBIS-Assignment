@@ -198,7 +198,7 @@ include '../includes/header.php';
                     <i class="fas fa-chevron-down"></i>
                 </div>
                 <div class="faq-answer">
-                    <p>We offer several shipping options across Malaysia: Standard (2-3 business days), Express (1-2 business days), and Same Day Delivery (Klang Valley only). Free shipping is available on orders over RM150.</p>
+                    <p>We currently offer standard shipping across Malaysia. Free shipping is available for orders over RM150.</p>
                 </div>
             </div>
             
@@ -208,7 +208,7 @@ include '../includes/header.php';
                     <i class="fas fa-chevron-down"></i>
                 </div>
                 <div class="faq-answer">
-                    <p>You can return items within 30 days of delivery. Simply log into your account, go to your order history, and initiate a return. We'll provide a prepaid shipping label.</p>
+                    <p>You can contact our customer service for assistance with returns.</p>
                 </div>
             </div>
             
@@ -228,7 +228,7 @@ include '../includes/header.php';
                     <i class="fas fa-chevron-down"></i>
                 </div>
                 <div class="faq-answer">
-                    <p>Currently, we ship throughout Malaysia and to Singapore, Brunei, and Thailand. We're expanding our international shipping to more Southeast Asian countries soon. Shipping rates and delivery times vary by location.</p>
+                    <p>We currently only ship within Malaysia.</p>
                 </div>
             </div>
             
@@ -248,7 +248,7 @@ include '../includes/header.php';
                     <i class="fas fa-chevron-down"></i>
                 </div>
                 <div class="faq-answer">
-                    <p>Yes! We offer beautiful gift wrapping for an additional RM12 per item. You can select this option during checkout. Perfect for birthdays, festivals, and special occasions!</p>
+                    <p>No, unfortunately we do not offer gift wrapping at the moment.</p>
                 </div>
             </div>
         </div>
@@ -327,7 +327,29 @@ include '../includes/header.php';
     </div>
 </section>
 
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const faqItems = document.querySelectorAll(".faq-item");
+
+    faqItems.forEach(item => {
+        const question = item.querySelector(".faq-question");
+        question.addEventListener("click", () => {
+            // Toggle active class
+            item.classList.toggle("active");
+
+            // Optionally close other open items (accordion behavior)
+            faqItems.forEach(otherItem => {
+                if(otherItem !== item) {
+                    otherItem.classList.remove("active");
+                }
+            });
+        });
+    });
+});
+</script>
+
+
 <?php
 // Include footer
-include 'includes/footer.php';
+include '../includes/footer.php';
 ?> 

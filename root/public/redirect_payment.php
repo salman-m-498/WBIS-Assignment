@@ -31,9 +31,14 @@ $subtotal = 0;
 foreach ($cart_items as $item) {
     $subtotal += $item['sale_price'] * $item['quantity'];
 }
+
 $shipping_area = $_POST['shipping_area'] ?? 'west';
 $shipping = ($subtotal >= 150) ? 0 : (($shipping_area === 'east') ? 12.00 : 8.00);
-$_SESSION['order_total'] = $subtotal + $shipping;
+$discount_amount = isset($_POST['discount_amount']) ? floatval($_POST['discount_amount']) : 0;
+
+$order_total = $subtotal + $shipping - $discount_amount;
+
+$_SESSION['order_total'] = $order_total;
 
 // Redirect based on payment method
 $payment_method = $_POST['payment_method'] ?? 'credit_card';
@@ -58,6 +63,8 @@ if ($payment_method === 'ewallet') {
         echo '<input type="hidden" name="selected_items[]" value="'.htmlspecialchars($product_id).'">';
     }
 }
+    echo '<input type="hidden" name="discount_amount" value="'.htmlspecialchars($discount_amount).'">';
+    echo '<input type="hidden" name="order_total" value="'.htmlspecialchars($order_total).'">';
     echo '</form>';
     echo '<script>document.getElementById("forwardForm").submit();</script>';
     exit;

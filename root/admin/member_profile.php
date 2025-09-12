@@ -30,10 +30,13 @@ if (!$user) {
     die("User not found.");
 }
 
-include '../includes/header.php';
+// Build profile picture path
+$profilePicPath = !empty($user['profile_pic'])
+    ? $user['profile_pic']
+    : '/assets/images/profile_pictures/default_profile_pic.jpg';
 
-//action bar
-// delete, disable(block login)
+include '../includes/admin_header.php';
+
 
 
 ?>
@@ -46,7 +49,9 @@ include '../includes/header.php';
 <div class="container" style="max-width:3000px; margin-top:30px;">
     <h2>User Profile</h2>
     <div style="border:1px solid #ccc; padding:20px; border-radius:8px;">
-        <p><strong>Profile ID:</strong> <?= htmlspecialchars($user['profile_id']) ?></p>
+        <div style="margin-bottom:10px;">
+            <img src="<?= htmlspecialchars($profilePicPath) ?>" alt="Profile Picture" style="width:120px; height:120px; object-fit:cover; border-radius:50%;">
+        </div>
         <p><strong>User ID:</strong> <?= htmlspecialchars($user['user_id']) ?></p>
         <p><strong>Role:</strong> <?= htmlspecialchars($user['role']) ?></p>
         <p><strong>Userame:</strong> <?= htmlspecialchars($user['username']) ?></p>
@@ -55,7 +60,21 @@ include '../includes/header.php';
         <p><strong>Email:</strong> <?= htmlspecialchars($user['email']) ?></p>
         <p><strong>Phone Number:</strong> <?= htmlspecialchars($user['phone']?? '') ?></p>
         <p><strong>Birth Date:</strong> <?= htmlspecialchars($user['date_of_birth']?? '') ?></p>
-        <p><strong>home Address:</strong> <?= htmlspecialchars($user['address']?? '') ?></p>
+        <p><strong>home Address:</strong> 
+        <?= htmlspecialchars($user['address_line1'] ?? '') ?>
+        <?php if (!empty($user['address_line2'])): ?>
+            , <?= htmlspecialchars($user['address_line2']) ?>
+        <?php endif; ?>
+        <?php if (!empty($user['city'])): ?>
+            , <?= htmlspecialchars($user['city']) ?>
+        <?php endif; ?>
+        <?php if (!empty($user['state'])): ?>
+            , <?= htmlspecialchars($user['state']) ?>
+        <?php endif; ?>
+        <?php if (!empty($user['postal_code'])): ?>
+            , <?= htmlspecialchars($user['postal_code']) ?>
+        <?php endif; ?>
+        </p>
         <p><strong>Status:</strong> <?= htmlspecialchars($user['status']) ?></p>
         <p>
             <strong>Newsletter Sub:</strong> 
@@ -74,7 +93,7 @@ include '../includes/header.php';
     </div>
 </div>
 
-<?php include '../includes/footer.php'; ?>
+<?php include '../includes/admin_footer.php'; ?>
 
 
 
