@@ -9,6 +9,11 @@ $breadcrumb_items = [
     ['url' => 'contact.php', 'title' => 'Contact Us']
 ];
 
+$submitted = false;
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $submitted = true;
+}
+
 // Include header
 include '../includes/header.php';
 ?>
@@ -33,8 +38,14 @@ include '../includes/header.php';
                     <h2>Send Us a Message</h2>
                     <p>Have a question or need assistance? We'd love to hear from you!</p>
                 </div>
+
+                <?php if ($submitted): ?>
+                    <div class="alert alert-success">
+                        ✅ Thank you! Your message has been received. 
+                    </div>
+                <?php endif; ?>
                 
-                <form class="contact-form" action="contact-submit.php" method="POST">
+                <form class="contact-form" action="" method="POST">
                     <div class="form-row">
                         <div class="form-group">
                             <label for="first_name">First Name *</label>

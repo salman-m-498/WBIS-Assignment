@@ -37,11 +37,21 @@ function handleLogin() {
     
     try {
         // Check if user exists and get user data
-        $stmt = $pdo->prepare("SELECT user_id, username, email, password, role, profile_pic FROM user WHERE email = ?");
+        $stmt = $pdo->prepare("SELECT user_id, username, email, password, role, profile_pic, status 
+                               FROM user 
+                               WHERE email = ?");
         $stmt->execute([$email]);
         $user = $stmt->fetch();
+
+         if ($user) {
+            // Check if blocked
+            if ($user['status'] === 'blocked') {
+                $_SESSION['error'] = 'Your account has been blocked. Please contact support.';
+                header('Location: login.php');
+                exit();
+            }
         
-        if ($user && password_verify($password, $user['password'])) {
+        if (password_verify($password, $user['password'])) {
             // Login successful
             $_SESSION['user_id'] = $user['user_id'];
             $_SESSION['username'] = $user['username'];
@@ -68,11 +78,11 @@ function handleLogin() {
                 header('Location: ../member/dashboard.php');
             }
             exit();
-        } else {
-            $_SESSION['error'] = 'Invalid email or password.';
-            header('Location: login.php');
-            exit();
         }
+        }
+         $_SESSION['error'] = 'Invalid email or password.';
+        header('Location: login.php');
+        exit();
     } catch (PDOException $e) {
         $_SESSION['error'] = 'An error occurred. Please try again.';
         header('Location: login.php');
