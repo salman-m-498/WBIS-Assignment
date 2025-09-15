@@ -43,7 +43,7 @@ if (!$order) {
 
 // Fetch order items
 $items_stmt = $pdo->prepare("
-    SELECT oi.*, p.name, p.sku
+    SELECT oi.*,p.sku
     FROM order_items oi
     JOIN products p ON oi.product_id = p.product_id
     WHERE oi.order_id = ?
@@ -190,7 +190,7 @@ foreach ($order_items as $item) {
     $itemsHtml .= '
     <tr>
         <td style="text-align:center;">' . htmlspecialchars($item['sku']) . '</td>
-        <td>' . htmlspecialchars($item['name']) . '</td>
+        <td>' . htmlspecialchars($item['product_name']) . '</td>
         <td style="text-align:center;">' . (int)($item['quantity'] ?? 0) . '</td>
         <td style="text-align:right;">RM ' . number_format($item['unit_price'] ?? 0, 2) . '</td>
         <td style="text-align:right;">RM ' . number_format($item['total_price'] ?? 0, 2) . '</td>

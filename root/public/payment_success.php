@@ -32,7 +32,7 @@ if (!$order) {
 
 // Get order items
 $stmt = $pdo->prepare("
-    SELECT oi.*, p.name, p.image, p.sku
+    SELECT oi.*, oi.product_name, oi.unit_price, oi.quantity, oi.total_price, p.image, p.sku
     FROM order_items oi 
     JOIN products p ON oi.product_id = p.product_id 
     WHERE oi.order_id = ?
@@ -146,10 +146,10 @@ include '../includes/header.php';
                             <div class="order-item">
                                 <div class="item-image">
                                     <img src="/<?= htmlspecialchars($image_path) ?>" 
-                                         alt="<?= htmlspecialchars($item['name']) ?>">
+                                         alt="<?= htmlspecialchars($item['product_name']) ?>">
                                 </div>
                                 <div class="item-details">
-                                    <h3><?= htmlspecialchars($item['name']) ?></h3>
+                                    <h3><?= htmlspecialchars($item['product_name']) ?></h3>
                                     <p class="item-sku">SKU: <?= htmlspecialchars($item['sku']) ?></p>
                                     <p class="item-quantity">Quantity: <?= $item['quantity'] ?></p>
                                 </div>

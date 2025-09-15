@@ -33,7 +33,7 @@ $total_reviews_header = $rating_data['total_reviews'] ?? 0;
 $main_image = $product['image'];
 
 // Gallery images come from product_images table
-$image_stmt = $pdo->prepare("SELECT image_path FROM product_images WHERE product_id = ?");
+$image_stmt = $pdo->prepare("SELECT image_path FROM product_images WHERE product_id = ? ORDER BY sort_order ASC, image_id ASC");
 $image_stmt->execute([$product_id]);
 $thumbnail_images = $image_stmt->fetchAll(PDO::FETCH_COLUMN);
 

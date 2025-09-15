@@ -64,11 +64,10 @@ $query = "
            pay.payment_status,
            pay.transaction_id,
            COUNT(oi.product_id) as item_count,
-           GROUP_CONCAT(DISTINCT p.name ORDER BY p.name SEPARATOR ', ') as product_names
+           GROUP_CONCAT(DISTINCT oi.product_name ORDER BY oi.product_name SEPARATOR ', ') as product_names
     FROM orders o
     JOIN user u ON o.user_id = u.user_id
     LEFT JOIN order_items oi ON o.order_id = oi.order_id
-    LEFT JOIN products p ON oi.product_id = p.product_id
     LEFT JOIN payments pay ON o.payment_id = pay.payment_id
     $where_clause
     GROUP BY o.order_id
@@ -281,11 +280,11 @@ if (!empty($orders)) {
     foreach ($orders as $order) {
         // Get order items for this order
         $items_stmt = $pdo->prepare("
-            SELECT oi.*, p.name, p.sku
+            SELECT oi.*, p.sku
             FROM order_items oi
             JOIN products p ON oi.product_id = p.product_id
             WHERE oi.order_id = ?
-            ORDER BY p.name
+            ORDER BY oi.product_name
         ");
         $items_stmt->execute([$order['order_id']]);
         $order_items = $items_stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -314,7 +313,7 @@ if (!empty($orders)) {
                 $item_bg = $item_alt ? ' style="background-color:#f8f9fa;"' : '';
                 $itemsHtml .= '<tr' . $item_bg . '>
                     <td style="border:1px solid #ddd; padding:4px;">' . htmlspecialchars($item['sku']) . '</td>
-                    <td style="border:1px solid #ddd; padding:4px;">' . htmlspecialchars($item['name']) . '</td>
+                    <td style="border:1px solid #ddd; padding:4px;">' . htmlspecialchars($item['product_name']) . '</td>
                     <td style="border:1px solid #ddd; padding:4px; text-align:center;">' . (int)$item['quantity'] . '</td>
                     <td style="border:1px solid #ddd; padding:4px; text-align:right;">RM ' . number_format($item['unit_price'], 2) . '</td>
                     <td style="border:1px solid #ddd; padding:4px; text-align:right;">RM ' . number_format($item['total_price'], 2) . '</td>

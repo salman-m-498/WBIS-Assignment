@@ -133,12 +133,13 @@ $stmt->execute([
 // Insert order items
 foreach ($cart_items as $item) {
     $stmt = $pdo->prepare("
-        INSERT INTO order_items (order_id, product_id, quantity, unit_price, total_price)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO order_items (order_id, product_id,  product_name, quantity, unit_price, total_price)
+        VALUES (?, ?, ?, ?, ?, ?)
     ");
     $stmt->execute([
         $order_id,
         $item['product_id'],
+        $item['name'],
         $item['quantity'],
         $item['sale_price'],
         $item['sale_price'] * $item['quantity']
@@ -155,6 +156,10 @@ foreach ($cart_items as $item) {
         $item['product_id'],
         $item['quantity']
     ]);
+ 
+    if ($updateStock->rowCount() === 0) {
+    throw new Exception("Not enough stock for {$item['name']}.");
+}
 }
 
 // Insert payment record
@@ -219,14 +224,6 @@ $_SESSION['order_success'] = [
     'order_id' => $order_id,
     'user_id' => $user_id
 ];
-
-// Remove purchased items from cart
-$deleteCartStmt = $pdo->prepare("
-    DELETE FROM cart 
-    WHERE user_id = ? AND product_id IN (" . implode(',', array_fill(0, count($selected_items), '?')) . ")
-");
-$deleteCartStmt->execute(array_merge([$user_id], $selected_items));
-
 
 
 // Redirect to confirmation page

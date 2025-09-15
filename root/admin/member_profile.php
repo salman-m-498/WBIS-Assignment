@@ -94,6 +94,3 @@ include '../includes/admin_header.php';
 </div>
 
 <?php include '../includes/admin_footer.php'; ?>
-
-
-

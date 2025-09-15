@@ -100,7 +100,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
 
+$stock_quantity = (int)($_POST['stock_quantity'] ?? 0);
 
+//prevent 0 or negative stock when adding new product
+if ($stock_quantity <= 0) {
+    $_SESSION['error'] = "Stock quantity must be greater than 0 when adding a new product.";
+    header("Location: product_add.php");
+    exit();
+}
     try {
         $pdo->beginTransaction();
 
@@ -118,7 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ':description'            => $description,
     ':price'                  => $price,
     ':sale_price'             => $sale_price,
-    ':stock_quantity'         => (int)($_POST['stock_quantity'] ?? 0),
+    ':stock_quantity'         => $stock_quantity, 
     ':status'                 => $status,
     ':product_features'       => $product_features,
     ':product_specifications' => $product_specifications,
@@ -150,7 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }  
 
-$categories = $pdo->query("SELECT * FROM categories WHERE parent_id IS NOT NULL ORDER BY name")->fetchAll();
+$categories = $pdo->query("SELECT * FROM categories WHERE parent_id IS NOT NULL ORDER BY parent_id, name")->fetchAll();
 include '../includes/admin_header.php';
 ?>
 
@@ -198,7 +205,7 @@ include '../includes/admin_header.php';
 
                     <div class="form-group">
                         <label for="stock_quantity">Stock Quantity *</label>
-                        <input type="number" id="stock_quantity" name="stock_quantity" min="0" value="0" required>
+                        <input type="number" id="stock_quantity" name="stock_quantity" min="1" value="1" required>
                     </div>
 
                     <div class="form-group">

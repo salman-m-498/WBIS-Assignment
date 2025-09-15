@@ -71,8 +71,8 @@
 </button>
 
 <!-- JavaScript -->
-<script src="assets/js/toyland.js"></script>
-<script src="assets/js/cart.js"></script>
+<script src="/assets/js/toyland.js"></script>
+<script src="/assets/js/cart.js"></script>
 
 <?php if (isset($page_scripts)): ?>
     <?php foreach ($page_scripts as $script): ?>

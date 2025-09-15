@@ -89,12 +89,6 @@
             }
         });
         
-        // Auto-refresh session timer
-        function refreshSession() {
-            $.post('refresh_session.php', function(data) {
-                console.log('Session refreshed');
-            });
-        }
         
         // Refresh session every 5 minutes
         setInterval(refreshSession, 300000);
@@ -111,30 +105,7 @@
             }
         });
         
-        // Auto-save drafts (if applicable)
-        let autoSaveTimer;
-        $('textarea, input[type="text"], input[type="email"]').on('input', function() {
-            clearTimeout(autoSaveTimer);
-            autoSaveTimer = setTimeout(function() {
-                // Auto-save logic here if needed
-                console.log('Auto-saving...');
-            }, 2000);
-        });
         
-        // Show notification count updates
-        function updateNotificationCount() {
-            $.get('get_notification_count.php', function(count) {
-                $('.notification-badge').text(count);
-                if (count > 0) {
-                    $('.notification-badge').show();
-                } else {
-                    $('.notification-badge').hide();
-                }
-            });
-        }
-        
-        // Update notification count every 30 seconds
-        setInterval(updateNotificationCount, 30000);
     });
     </script>
 </body>

@@ -10,6 +10,20 @@ if (!isset($_GET['id'])) {
 
 $product_id = $_GET['id'];
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sort_order'])) {
+    $order = $_POST['sort_order'];
+
+    if (is_array($order)) {
+        foreach ($order as $position => $imageId) {
+            $stmt = $pdo->prepare("UPDATE product_images SET sort_order = ? WHERE image_id = ? AND product_id = ?");
+            $stmt->execute([$position, $imageId, $product_id]);
+        }
+    }
+
+    echo json_encode(['status' => 'success']);
+    exit;
+}
+
 function deleteFileIfExists($path) {
     $fullPath = __DIR__ . '/../' . $path;
     if ($path && file_exists($fullPath) && strpos($path, 'no-image.png') === false) {
@@ -47,7 +61,7 @@ function handleFileUpload($file, $uploadDirAbs, $uploadDirWeb) {
 }
 
 // --- Fetch categories for dropdown ---
-$categories = $pdo->query("SELECT category_id, name FROM categories WHERE status = 'active' ORDER BY name")->fetchAll();
+$categories = $pdo->query("SELECT category_id, name FROM categories WHERE status = 'active' AND parent_id IS NOT NULL ORDER BY parent_id, name")->fetchAll();
 
 // --- Fectch product ---
 $stmt = $pdo->prepare("SELECT * FROM products WHERE product_id = ?");
@@ -61,7 +75,7 @@ if (!$product){
 }
 
 // --- Fetch gallery images ---
-$galleryStmt = $pdo->prepare("SELECT * FROM product_images WHERE product_id = ? ORDER BY image_id ASC");
+$galleryStmt = $pdo->prepare("SELECT * FROM product_images WHERE product_id = ? ORDER BY sort_order ASC, image_id ASC");
 $galleryStmt->execute([$product_id]);
 $galleryImages = $galleryStmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -150,6 +164,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Add new gallery images if uploaded
        if (!empty($_FILES['gallery']['name'][0])) {
+        $maxStmt = $pdo->prepare("SELECT COALESCE(MAX(sort_order), 0) FROM product_images WHERE product_id = ?");
+        $maxStmt->execute([$product_id]);
+        $nextSortOrder = (int)$maxStmt->fetchColumn();
+            
             foreach ($_FILES['gallery']['name'] as $key => $galleryName) {
                 if (empty($galleryName)) continue; // Skip empty files
                 
@@ -163,8 +181,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 $galleryPath = handleFileUpload($file, $uploadDirAbs, $uploadDirWeb);
                 if ($galleryPath) {
-                    $stmtImg = $pdo->prepare("INSERT INTO product_images (product_id, image_path) VALUES (?, ?)");
-                    $stmtImg->execute([$product_id, ltrim($galleryPath, '/')]);
+                    $nextSortOrder++; 
+                    $stmtImg = $pdo->prepare("INSERT INTO product_images (product_id, image_path, sort_order) VALUES (?, ?, ?)");
+                    $stmtImg->execute([$product_id, ltrim($galleryPath, '/'), $nextSortOrder]);
                 }
             }
         }

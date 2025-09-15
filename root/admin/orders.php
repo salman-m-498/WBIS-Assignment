@@ -249,11 +249,12 @@ $query = "
            pay.payment_status,
            pay.transaction_id,
            COUNT(oi.product_id) as item_count,
-           GROUP_CONCAT(DISTINCT p.name ORDER BY p.name SEPARATOR ', ') as product_names
+           GROUP_CONCAT(DISTINCT CONCAT(oi.product_name, ' (x', oi.quantity, ')') 
+           ORDER BY oi.product_name SEPARATOR ', ') as product_items,
+           SUM(oi.total_price) as order_items_total
     FROM orders o
     JOIN user u ON o.user_id = u.user_id
     LEFT JOIN order_items oi ON o.order_id = oi.order_id
-    LEFT JOIN products p ON oi.product_id = p.product_id
     LEFT JOIN payments pay ON o.payment_id = pay.payment_id
     $where_clause
     GROUP BY o.order_id
@@ -507,9 +508,9 @@ include '../includes/admin_header.php';
                         <td>
                             <div class="items-info">
                                 <div class="item-count"><?= $order['item_count'] ?> item(s)</div>
-                                <div class="item-preview" title="<?= htmlspecialchars($order['product_names']) ?>">
-                                    <?= htmlspecialchars(substr($order['product_names'], 0, 50)) ?>
-                                    <?= strlen($order['product_names']) > 50 ? '...' : '' ?>
+                                <div class="item-preview" title="<?= htmlspecialchars($order['product_items']) ?>">
+                                    <?= htmlspecialchars(substr($order['product_items'], 0, 50)) ?>
+                                    <?= strlen($order['product_items']) > 50 ? '...' : '' ?>
                                 </div>
                             </div>
                         </td>

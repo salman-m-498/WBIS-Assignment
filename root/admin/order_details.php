@@ -162,7 +162,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $order = $stmt->fetch(PDO::FETCH_ASSOC);
 
         $stmt = $pdo->prepare("
-            SELECT oi.*, p.name as product_name, p.sku, p.image
+            SELECT oi.*, p.sku, p.image
             FROM order_items oi
             JOIN products p ON oi.product_id = p.product_id
             WHERE oi.order_id = ?
@@ -217,7 +217,7 @@ $order = $stmt->fetch(PDO::FETCH_ASSOC);
     
     // Fetch order items
      $stmt = $pdo->prepare("
-        SELECT oi.*, p.name as product_name, p.sku, p.image
+        SELECT oi.*, p.sku, p.image
         FROM order_items oi
         JOIN products p ON oi.product_id = p.product_id
         WHERE oi.order_id = ?

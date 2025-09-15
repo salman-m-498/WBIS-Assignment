@@ -56,16 +56,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
 // --- Handle Search & Sort ---
 $search = $_GET['search'] ?? '';
 $sort = $_GET['sort'] ?? 'newest';
+$category_filter = $_GET['category'] ?? '';
 $page = max(1, (int)($_GET['page'] ?? 1));
 $per_page = 15; 
 $offset = ($page - 1) * $per_page;
 
-$where = '';
+$where = [];
 $params = [];
 if ($search) {
-    $where = "WHERE p.name LIKE ? OR p.description LIKE ? OR c.name LIKE ?";
-    $params = ["%$search%", "%$search%", "%$search%"];
+    $where[] = "(p.name LIKE ? OR p.description LIKE ? OR c.name LIKE ? OR p.product_id LIKE ?)";
+    $params = ["%$search%", "%$search%", "%$search%", "%$search%"];
 }
+
+if ($category_filter) {
+     // Find all subcategories if it's a main category
+    $sub_stmt = $pdo->prepare("SELECT category_id FROM categories WHERE parent_id = ?");
+    $sub_stmt->execute([$category_filter]);
+    $subcategories = $sub_stmt->fetchAll(PDO::FETCH_COLUMN);
+
+    if ($subcategories) {
+        // Include main category + its subcategories
+        $placeholders = implode(',', array_fill(0, count($subcategories) + 1, '?'));
+        $where[] = "p.category_id IN ($placeholders)";
+        $params = array_merge($params, [$category_filter], $subcategories);
+    } else {
+        // No subcategories, just filter by this category
+        $where[] = "p.category_id = ?";
+        $params[] = $category_filter;
+    }
+}
+
+$where_sql = $where ? "WHERE " . implode(" AND ", $where) : "";
 
 switch ($sort) {
     case 'oldest':
@@ -95,7 +116,7 @@ switch ($sort) {
 }
 
 // Count total
-$count_sql = "SELECT COUNT(*) FROM products p LEFT JOIN categories c ON p.category_id = c.category_id $where";
+$count_sql = "SELECT COUNT(*) FROM products p LEFT JOIN categories c ON p.category_id = c.category_id $where_sql";
 $count_stmt = $pdo->prepare($count_sql);
 $count_stmt->execute($params);
 $total_products = $count_stmt->fetchColumn();
@@ -104,13 +125,16 @@ $total_pages = ceil($total_products / $per_page);
 $sql = "SELECT p.*, c.name AS category_name
         FROM products p
         LEFT JOIN categories c ON p.category_id = c.category_id
-        $where
+        $where_sql
         ORDER BY $orderBy
         LIMIT $per_page OFFSET $offset";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$cat_stmt = $pdo->query("SELECT category_id, name FROM categories ORDER BY name ASC");
+$categories = $cat_stmt->fetchAll(PDO::FETCH_ASSOC);
 
 $page_title = "Manage Products";
 include '../includes/admin_header.php';
@@ -136,6 +160,15 @@ include '../includes/admin_header.php';
     <!-- Actions -->
     <div class="products-filters-bar">
             <form method="get" action="products.php" class="products-filters-form">
+                <select name="category" onchange="this.form.submit()">
+    <option value="">All Categories</option>
+    <?php foreach ($categories as $cat): ?>
+        <option value="<?= $cat['category_id'] ?>" 
+            <?= $category_filter == $cat['category_id'] ? 'selected' : '' ?>>
+            <?= htmlspecialchars($cat['name']) ?>
+        </option>
+    <?php endforeach; ?>
+</select>
                 <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" 
                        placeholder="Search products..." style="flex:1; padding:5px;">
                 <select name="sort" onchange="this.form.submit()">

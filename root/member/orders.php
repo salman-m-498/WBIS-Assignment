@@ -93,13 +93,12 @@ $stmt = $pdo->prepare("
            o.tracking_number,
            o.shipping_courier,
            COUNT(oi.product_id) AS item_count,
-           GROUP_CONCAT(p.name SEPARATOR ', ') AS product_names,
+           GROUP_CONCAT(oi.product_name SEPARATOR ', ') AS product_names,
            pay.payment_method,
            pay.payment_status,
            pay.transaction_id
     FROM orders o
     LEFT JOIN order_items oi ON o.order_id = oi.order_id
-    LEFT JOIN products p ON oi.product_id = p.product_id
     LEFT JOIN payments pay ON o.payment_id = pay.payment_id
     WHERE o.user_id = :user_id
     GROUP BY o.order_id
